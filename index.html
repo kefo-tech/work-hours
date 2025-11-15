@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   KeFo Work Hours – PWA
-  حساب ساعات العمل مع تقويم + PDF + 3 لغات + PWA
+  حساب ساعات العمل مع تقويم + PDF أفقي منظم + 3 لغات + PWA
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <!-- لون شريط النظام عند التثبيت -->
   <meta name="theme-color" content="#0f172a">
-  <!-- أيقونة التبويب (يمكنك تغيير المسار لو حبيت) -->
+  <!-- أيقونة التبويب -->
   <link rel="icon" href="icons/icon-512.png">
 
   <style>
@@ -144,9 +144,10 @@
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .footer{display:flex;justify-content:space-between;gap:10px;padding:12px 16px}
 
-    /* الطباعة: جدول فقط */
+    /* الطباعة: صفحة أفقية + جدول فقط */
     @media print{
-      body{background:#fff;color:#000}
+      @page { size: A4 landscape; margin: 10mm; }
+      body{background:#fff;color:#000;font-size:11px}
       header, footer, #setup, #calendar{display:none !important}
       #printArea{display:block !important}
     }
@@ -206,27 +207,34 @@
       <div class="cal-grid" id="days"></div>
     </section>
 
-    <!-- تقرير الطباعة -->
+    <!-- تقرير الطباعة (جدول أفقي منظم) -->
     <section id="printArea" style="display:none">
-      <h2 id="reportTitle"></h2>
+      <h2 id="reportTitle" style="margin:0 0 8px 0"></h2>
       <table id="reportTable" style="width:100%;border-collapse:collapse;font-family:system-ui">
         <thead>
           <tr>
-            <th id="thDate"   style="border:1px solid #777;padding:6px;text-align:center">Date</th>
-            <th id="thWorked" style="border:1px solid #777;padding:6px;text-align:center">Worked</th>
-            <th id="thOT"     style="border:1px solid #777;padding:6px;text-align:center">OT</th>
+            <th id="thStartDate" style="border:1px solid #777;padding:4px;text-align:center">Startdatum</th>
+            <th id="thStartTime" style="border:1px solid #777;padding:4px;text-align:center">Startzeit</th>
+            <th id="thEndDate"   style="border:1px solid #777;padding:4px;text-align:center">Enddatum</th>
+            <th id="thEndTime"   style="border:1px solid #777;padding:4px;text-align:center">Endzeit</th>
+            <th id="thDuration"  style="border:1px solid #777;padding:4px;text-align:center">Dauer</th>
+            <th id="thWorked"    style="border:1px solid #777;padding:4px;text-align:center">Arbeitszeit</th>
+            <th id="thBreak"     style="border:1px solid #777;padding:4px;text-align:center">Pause</th>
+            <th id="thOT"        style="border:1px solid #777;padding:4px;text-align:center">Überstunden</th>
           </tr>
         </thead>
         <tbody id="reportBody"></tbody>
         <tfoot>
           <tr>
-            <th id="thTotal"      style="border:1px solid #777;padding:6px;text-align:center">Total</th>
-            <th id="tdSumWorked"  style="border:1px solid #777;padding:6px;text-align:center">0:00</th>
-            <th id="tdSumOT"      style="border:1px solid #777;padding:6px;text-align:center">0:00</th>
+            <th id="thTotal" style="border:1px solid #777;padding:4px;text-align:center">Gesamt</th>
+            <th colspan="4" style="border:1px solid #777;padding:4px;text-align:center"></th>
+            <th id="tdSumWorked" style="border:1px solid #777;padding:4px;text-align:center">0:00</th>
+            <th id="tdSumBreak"  style="border:1px solid #777;padding:4px;text-align:center">0:00</th>
+            <th id="tdSumOT"     style="border:1px solid #777;padding:4px;text-align:center">0:00</th>
           </tr>
         </tfoot>
       </table>
-      <div style="margin-top:12px;font-size:.9rem">© <span id="year"></span> KeFo.tech</div>
+      <div style="margin-top:8px;font-size:.9rem">© <span id="year"></span> KeFo.tech</div>
     </section>
   </main>
 
@@ -264,17 +272,143 @@
   <script>
     /* ========= ترجمة النصوص (3 لغات) ========= */
     const i18n = {
-      de:{appTitle:'Arbeitszeitrechner',monthSum:'Stunden dieses Monats',overtime:'Überstunden',language:'Sprache',settings:'Einstellungen',reset:'Zurücksetzen',print:'PDF-Bericht',setupTitle:'Schnelle Einrichtung',qOfficial:'Offizielle tägliche Arbeitszeit',hintOfficial:'Diese Einstellung wird gespeichert.',skip:'Überspringen',next:'Weiter',weekdays:['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'],start:'Arbeitsbeginn',end:'Arbeitsende',break:'Pause (Minuten)',total:'Tagessumme',deleteDay:'Tag löschen',now:'Jetzt',save:'Speichern',noData:'— Keine Daten —',rights:'Alle Rechte vorbehalten',errHours:'Bitte eine Zahl zwischen 1 und 24 eingeben.',errTimes:'Bitte Beginn und Ende eingeben.',reportTitle:'Monatsbericht',thDate:'Datum',thWorked:'Arbeitszeit',thOT:'Überstunden',thTotal:'Gesamt'},
-      en:{appTitle:'Work Hours Calculator',monthSum:'Hours this month',overtime:'Overtime',language:'Language',settings:'Settings',reset:'Reset',print:'PDF Report',setupTitle:'Quick setup',qOfficial:'Official daily work hours',hintOfficial:'This value will be saved permanently.',skip:'Skip',next:'Next',weekdays:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],start:'Start time',end:'End time',break:'Break (minutes)',total:'Day total',deleteDay:'Delete day',now:'Now',save:'Save',noData:'— No data —',rights:'All rights reserved',errHours:'Please enter a value between 1 and 24.',errTimes:'Please enter start and end times.',reportTitle:'Monthly report',thDate:'Date',thWorked:'Worked',thOT:'Overtime',thTotal:'Total'},
-      ar:{appTitle:'حاسِب ساعات العمل',monthSum:'ساعات هذا الشهر',overtime:'العمل الإضافي',language:'اللغة',settings:'الإعدادات',reset:'تصفير',print:'تقرير PDF',setupTitle:'إعداد سريع',qOfficial:'عدد ساعات العمل الرسمية يوميًا (بالساعات)',hintOfficial:'سيتم حفظ هذا الإعداد ويمكن تغييره لاحقًا.',skip:'تخطي',next:'التالي',weekdays:['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'],start:'بداية الدوام',end:'نهاية الدوام',break:'مدة الاستراحة (بالدقائق)',total:'المحصلة لليوم',deleteDay:'حذف بيانات اليوم',now:'الآن',save:'حفظ',noData:'— لا بيانات —',rights:'جميع الحقوق محفوظة',errHours:'يرجى إدخال رقم بين 1 و 24',errTimes:'يرجى إدخال وقت البداية والنهاية',reportTitle:'تقرير الشهر',thDate:'التاريخ',thWorked:'العمل',thOT:'إضافي',thTotal:'الإجمالي'}
+      de:{
+        appTitle:'Arbeitszeitrechner',
+        monthSum:'Stunden dieses Monats',
+        overtime:'Überstunden',
+        language:'Sprache',
+        settings:'Einstellungen',
+        reset:'Zurücksetzen',
+        print:'PDF-Bericht',
+
+        setupTitle:'Schnelle Einrichtung',
+        qOfficial:'Offizielle tägliche Arbeitszeit (Stunden)',
+        hintOfficial:'Diese Einstellung wird gespeichert.',
+        skip:'Überspringen',
+        next:'Weiter',
+
+        weekdays:['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'],
+
+        start:'Arbeitsbeginn',
+        end:'Arbeitsende',
+        break:'Pause (Minuten)',
+        total:'Tagessumme',
+
+        deleteDay:'Tag löschen',
+        now:'Jetzt',
+        save:'Speichern',
+        noData:'— Keine Daten —',
+
+        errHours:'Bitte eine Zahl zwischen 1 und 24 eingeben.',
+        errTimes:'Bitte Beginn und Ende eingeben.',
+
+        reportTitle:'Monatsbericht',
+        thStartDate:'Startdatum',
+        thStartTime:'Startzeit',
+        thEndDate:'Enddatum',
+        thEndTime:'Endzeit',
+        thDuration:'Dauer',
+        thWorked:'Arbeitszeit',
+        thBreak:'Pause',
+        thOT:'Überstunden',
+        thTotal:'Gesamt',
+
+        rights:'Alle Rechte vorbehalten'
+      },
+      en:{
+        appTitle:'Work Hours Calculator',
+        monthSum:'Hours this month',
+        overtime:'Overtime',
+        language:'Language',
+        settings:'Settings',
+        reset:'Reset',
+        print:'PDF Report',
+
+        setupTitle:'Quick setup',
+        qOfficial:'Official daily work hours',
+        hintOfficial:'This value will be saved permanently.',
+        skip:'Skip',
+        next:'Next',
+
+        weekdays:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+
+        start:'Start time',
+        end:'End time',
+        break:'Break (minutes)',
+        total:'Day total',
+
+        deleteDay:'Delete day',
+        now:'Now',
+        save:'Save',
+        noData:'— No data —',
+
+        errHours:'Please enter a value between 1 and 24.',
+        errTimes:'Please enter start and end times.',
+
+        reportTitle:'Monthly report',
+        thStartDate:'Start date',
+        thStartTime:'Start time',
+        thEndDate:'End date',
+        thEndTime:'End time',
+        thDuration:'Duration',
+        thWorked:'Work time',
+        thBreak:'Break',
+        thOT:'Overtime',
+        thTotal:'Total',
+
+        rights:'All rights reserved'
+      },
+      ar:{
+        appTitle:'حاسِب ساعات العمل',
+        monthSum:'ساعات هذا الشهر',
+        overtime:'العمل الإضافي',
+        language:'اللغة',
+        settings:'الإعدادات',
+        reset:'تصفير',
+        print:'تقرير PDF',
+
+        setupTitle:'إعداد سريع',
+        qOfficial:'عدد ساعات العمل الرسمية يوميًا (بالساعات)',
+        hintOfficial:'سيتم حفظ هذا الإعداد ويمكن تغييره لاحقًا.',
+        skip:'تخطي',
+        next:'التالي',
+
+        weekdays:['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'],
+
+        start:'بداية الدوام',
+        end:'نهاية الدوام',
+        break:'مدة الاستراحة (بالدقائق)',
+        total:'المحصلة لليوم',
+
+        deleteDay:'حذف بيانات اليوم',
+        now:'الآن',
+        save:'حفظ',
+        noData:'— لا بيانات —',
+
+        errHours:'يرجى إدخال رقم بين 1 و 24',
+        errTimes:'يرجى إدخال وقت البداية والنهاية',
+
+        reportTitle:'تقرير الشهر',
+        thStartDate:'تاريخ البداية',
+        thStartTime:'وقت البداية',
+        thEndDate:'تاريخ النهاية',
+        thEndTime:'وقت النهاية',
+        thDuration:'المدة الكلية',
+        thWorked:'ساعات العمل',
+        thBreak:'الاستراحة',
+        thOT:'العمل الإضافي',
+        thTotal:'الإجمالي',
+
+        rights:'جميع الحقوق محفوظة'
+      }
     };
 
-    const $ = s => document.querySelector(s);
-    const pad = n => String(n).padStart(2,'0');
-    const fmtHM = m => {m=Math.max(0,Math.round(m||0));return `${Math.floor(m/60)}:${pad(m%60)}`};
-    const toKey = (y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
+    const $  = s=>document.querySelector(s);
+    const pad = n=>String(n).padStart(2,'0');
+    const fmtHM = m=>{m=Math.max(0,Math.round(m||0));return `${Math.floor(m/60)}:${pad(m%60)}`};
+    const toKey=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
 
-    const store = {
+    const store={
       get hours(){return parseFloat(localStorage.getItem('officialDailyHours')||'0')||0},
       set hours(v){localStorage.setItem('officialDailyHours',String(v))},
       get logs(){return JSON.parse(localStorage.getItem('workLogs')||'{}')},
@@ -284,8 +418,8 @@
       reset(){localStorage.clear()}
     };
 
-    let view = new Date();
-    let activeKey = null;
+    let view=new Date();
+    let activeKey=null;
 
     function autoLang(){
       const nav=(navigator.language||'en').toLowerCase();
@@ -296,39 +430,44 @@
     }
 
     function applyLang(){
-      const lang = store.lang;
-      const t = i18n[lang] || i18n.en;
-      document.documentElement.lang = lang;
-      document.documentElement.dir  = (lang==='ar')?'rtl':'ltr';
+      const lang=store.lang;
+      const t=i18n[lang]||i18n.en;
+      document.documentElement.lang=lang;
+      document.documentElement.dir=(lang==='ar')?'rtl':'ltr';
 
-      $('#appTitle').textContent = t.appTitle;
-      $('#lblMonthSum').textContent = t.monthSum;
-      $('#lblOT').textContent   = t.overtime;
-      $('#lblLang').textContent = t.language;
-      $('#lblPrint').textContent= t.print;
-      $('#lblSettings').textContent = t.settings;
-      $('#lblReset').textContent    = t.reset;
+      $('#appTitle').textContent=t.appTitle;
+      $('#lblMonthSum').textContent=t.monthSum;
+      $('#lblOT').textContent=t.overtime;
+      $('#lblLang').textContent=t.language;
+      $('#lblPrint').textContent=t.print;
+      $('#lblSettings').textContent=t.settings;
+      $('#lblReset').textContent=t.reset;
 
-      $('#setupTitle').textContent = t.setupTitle;
-      $('#qOfficial').textContent  = t.qOfficial;
-      $('#hintOfficial').textContent = t.hintOfficial;
-      $('#setupSkip').textContent  = t.skip;
-      $('#setupSave').textContent  = t.next;
+      $('#setupTitle').textContent=t.setupTitle;
+      $('#qOfficial').textContent=t.qOfficial;
+      $('#hintOfficial').textContent=t.hintOfficial;
+      $('#setupSkip').textContent=t.skip;
+      $('#setupSave').textContent=t.next;
 
-      $('#lblStart').textContent = t.start;
-      $('#lblEnd').textContent   = t.end;
-      $('#lblBreak').textContent = t.break;
-      $('#lblTotal').textContent = t.total;
-      $('#lblDeleteDay').textContent = t.deleteDay;
-      $('#lblNow').textContent   = t.now;
-      $('#lblSave').textContent  = t.save;
+      $('#lblStart').textContent=t.start;
+      $('#lblEnd').textContent=t.end;
+      $('#lblBreak').textContent=t.break;
+      $('#lblTotal').textContent=t.total;
+      $('#lblDeleteDay').textContent=t.deleteDay;
+      $('#lblNow').textContent=t.now;
+      $('#lblSave').textContent=t.save;
 
-      $('#rights').textContent = t.rights;
+      $('#rights').textContent=t.rights;
 
-      $('#thDate').textContent   = t.thDate;
-      $('#thWorked').textContent = t.thWorked;
-      $('#thOT').textContent     = t.thOT;
-      $('#thTotal').textContent  = t.thTotal;
+      $('#thStartDate').textContent=t.thStartDate;
+      $('#thStartTime').textContent=t.thStartTime;
+      $('#thEndDate').textContent  =t.thEndDate;
+      $('#thEndTime').textContent  =t.thEndTime;
+      $('#thDuration').textContent =t.thDuration;
+      $('#thWorked').textContent   =t.thWorked;
+      $('#thBreak').textContent    =t.thBreak;
+      $('#thOT').textContent       =t.thOT;
+      $('#thTotal').textContent    =t.thTotal;
 
       renderWeekdays();
       renderCalendarTitle();
@@ -337,11 +476,10 @@
     }
 
     function renderWeekdays(){
-      const t = i18n[store.lang] || i18n.en;
-      const dow = $('#dow');
-      dow.innerHTML = '';
+      const t=i18n[store.lang]||i18n.en;
+      const dow=$('#dow'); dow.innerHTML='';
       for(const name of t.weekdays){
-        const el = document.createElement('div');
+        const el=document.createElement('div');
         el.className='dow';
         el.textContent=name;
         dow.appendChild(el);
@@ -349,8 +487,8 @@
     }
 
     function renderCalendarTitle(){
-      const lang = store.lang;
-      $('#calTitle').textContent =
+      const lang=store.lang;
+      $('#calTitle').textContent=
         new Intl.DateTimeFormat(lang,{month:'long',year:'numeric'}).format(view);
     }
 
@@ -358,37 +496,31 @@
       const y=view.getFullYear(), m=view.getMonth();
       const first=new Date(y,m,1), last=new Date(y,m+1,0);
       const firstDow=(first.getDay()+6)%7;
-      const daysEl = $('#days');
-      daysEl.innerHTML='';
-
-      // خلايا فارغة قبل اليوم 1
+      const daysEl=$('#days'); daysEl.innerHTML='';
       for(let i=0;i<firstDow;i++){
         const cell=document.createElement('div');
         cell.className='day disabled';
         daysEl.appendChild(cell);
       }
-
-      const logs = store.logs;
+      const logs=store.logs;
       for(let d=1; d<=last.getDate(); d++){
-        const key = toKey(y,m,d);
+        const key=toKey(y,m,d);
         const cell=document.createElement('div');
         cell.className='day';
 
         const num=document.createElement('div');
-        num.className='dnum';
-        num.textContent=d;
+        num.className='dnum'; num.textContent=d;
         cell.appendChild(num);
 
         const badge=document.createElement('div');
         badge.className='badge';
-        badge.textContent = logs[key] ? fmtHM(logs[key].worked) : (i18n[store.lang]||i18n.en).noData;
+        badge.textContent=logs[key]?fmtHM(logs[key].worked):(i18n[store.lang]||i18n.en).noData;
         cell.appendChild(badge);
 
-        const edit=document.createElement('button');
-        edit.className='edit';
-        edit.textContent='✎';
-        edit.onclick=()=>openDayModal(key);
-        cell.appendChild(edit);
+        const btn=document.createElement('button');
+        btn.className='edit'; btn.textContent='✎';
+        btn.onclick=()=>openDayModal(key);
+        cell.appendChild(btn);
 
         daysEl.appendChild(cell);
       }
@@ -396,43 +528,44 @@
 
     function updateSummary(){
       const y=view.getFullYear(), m=view.getMonth();
-      const logs=store.logs;
-      let total=0, ot=0;
+      const logs=store.logs; let total=0, ot=0;
       for(const k in logs){
         const [yy,mm]=k.split('-').map(Number);
         if(yy===y && mm===m+1){
-          total += logs[k].worked||0;
-          ot    += Math.max(0, (logs[k].worked||0) - store.hours*60);
+          const w=logs[k].worked||0;
+          total+=w;
+          ot+=Math.max(0, w - store.hours*60);
         }
       }
-      $('#sum-month').textContent = fmtHM(total);
-      $('#sum-ot').textContent    = fmtHM(ot);
+      $('#sum-month').textContent=fmtHM(total);
+      $('#sum-ot').textContent   =fmtHM(ot);
     }
 
     function openDayModal(key){
       activeKey=key;
-      const log = store.logs[key];
-      const dt  = new Date(key);
-      const lang = store.lang;
-      $('#modalTitle').textContent =
+      const log=store.logs[key];
+      const dt=new Date(key);
+      const lang=store.lang;
+      $('#modalTitle').textContent=
         new Intl.DateTimeFormat(lang,{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(dt);
-
-      $('#inStart').value = log?.start || '';
-      $('#inEnd').value   = log?.end   || '';
-      $('#inBreak').value = log?.break ?? '';
-      $('#inResult').value= log ? fmtHM(log.worked) : '0:00';
-
+      $('#inStart').value=log?.start||'';
+      $('#inEnd').value  =log?.end  ||'';
+      $('#inBreak').value=log?.break??'';
+      $('#inResult').value=log?fmtHM(log.worked):'0:00';
       $('#modalBg').style.display='flex';
     }
     function closeModal(){ $('#modalBg').style.display='none'; activeKey=null; }
 
-    function computeWorked(start,end,brk){
-      if(!start || !end) return 0;
+    function computeDuration(start,end){
+      if(!start||!end) return 0;
       const [sh,sm]=start.split(':').map(Number);
       const [eh,em]=end.split(':').map(Number);
       let s=sh*60+sm, e=eh*60+em;
       if(e<s) e+=1440;
-      return Math.max(0, e - s - (parseInt(brk)||0));
+      return e-s;
+    }
+    function computeWorked(start,end,brk){
+      return Math.max(0, computeDuration(start,end) - (parseInt(brk)||0));
     }
 
     function wireModal(){
@@ -451,7 +584,7 @@
         const start=$('#inStart').value;
         const end  =$('#inEnd').value;
         const brk  =$('#inBreak').value||0;
-        if(!start || !end){ alert(t.errTimes); return; }
+        if(!start||!end){alert(t.errTimes);return;}
         const worked=computeWorked(start,end,brk);
         const logs=store.logs;
         logs[activeKey]={start,end,break:parseInt(brk)||0,worked};
@@ -472,44 +605,68 @@
 
       $('#btnNow').onclick=()=>{
         const now=new Date();
-        $('#inStart').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-        $('#inEnd').value   = `${pad((now.getHours()+8)%24)}:${pad(now.getMinutes())}`;
-        $('#inBreak').value = 30;
-        $('#inResult').value= fmtHM(computeWorked($('#inStart').value,$('#inEnd').value,30));
+        $('#inStart').value=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        $('#inEnd').value  =`${pad((now.getHours()+8)%24)}:${pad(now.getMinutes())}`;
+        $('#inBreak').value=30;
+        $('#inResult').value=fmtHM(
+          computeWorked($('#inStart').value,$('#inEnd').value,$('#inBreak').value)
+        );
       };
     }
 
     function buildReport(){
-      const t = i18n[store.lang]||i18n.en;
+      const t=i18n[store.lang]||i18n.en;
       const y=view.getFullYear(), m=view.getMonth();
-      $('#reportTitle').textContent = `${t.reportTitle} – ${new Intl.DateTimeFormat(store.lang,{month:'long',year:'numeric'}).format(view)}`;
-      $('#year').textContent = y;
+      $('#reportTitle').textContent=
+        `${t.reportTitle} – ${new Intl.DateTimeFormat(store.lang,{month:'long',year:'numeric'}).format(view)}`;
+      $('#year').textContent=y;
+
       const body=$('#reportBody'); body.innerHTML='';
       const last=new Date(y,m+1,0);
-      let sumW=0, sumOT=0;
+      const logs=store.logs;
+
+      let sumW=0, sumOT=0, sumBreak=0;
+
       for(let d=1; d<=last.getDate(); d++){
         const key=toKey(y,m,d);
-        const log=store.logs[key];
-        const w=log?log.worked:0;
-        const ot=Math.max(0, w - store.hours*60);
-        sumW+=w; sumOT+=ot;
+        const log=logs[key];
+        if(!log) continue; // فقط الأيام التي تحتوي بيانات
+
+        const startDateStr=new Intl.DateTimeFormat(store.lang,{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m,d));
+        const endDateStr  =startDateStr; // نفس اليوم في هذا التطبيق
+
+        const durationMins=computeDuration(log.start,log.end);          // المدة الكلية
+        const workedMins  =log.worked||0;                               // بعد طرح الاستراحة
+        const breakMins   =log.break||0;
+        const otMins      =Math.max(0, workedMins - store.hours*60);
+
+        sumW     += workedMins;
+        sumOT    += otMins;
+        sumBreak += breakMins;
 
         const tr=document.createElement('tr');
-        tr.innerHTML = `
-          <td style="border:1px solid #777;padding:4px;text-align:center">${pad(d)}/${pad(m+1)}/${y}</td>
-          <td style="border:1px solid #777;padding:4px;text-align:center">${log?fmtHM(w):t.noData}</td>
-          <td style="border:1px solid #777;padding:4px;text-align:center">${fmtHM(ot)}</td>
+        tr.innerHTML=`
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${startDateStr}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${log.start||''}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${endDateStr}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${log.end||''}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(durationMins)}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(workedMins)}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(breakMins)}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(otMins)}</td>
         `;
         body.appendChild(tr);
       }
-      $('#tdSumWorked').textContent = fmtHM(sumW);
-      $('#tdSumOT').textContent     = fmtHM(sumOT);
+
+      $('#tdSumWorked').textContent=fmtHM(sumW);
+      $('#tdSumBreak').textContent =fmtHM(sumBreak);
+      $('#tdSumOT').textContent    =fmtHM(sumOT);
     }
 
     function refreshVisibility(){
-      const hasHours = store.hours>0;
-      $('#setup').hidden  = hasHours;
-      $('#calendar').hidden = !hasHours;
+      const hasHours=store.hours>0;
+      $('#setup').hidden  =hasHours;
+      $('#calendar').hidden=!hasHours;
     }
 
     function initSetup(){
@@ -519,18 +676,14 @@
       $('#setupSave').onclick=()=>{
         const val=parseFloat(input.value);
         const t=i18n[store.lang]||i18n.en;
-        if(!val||val<=0||val>24){ alert(t.errHours); return; }
+        if(!val||val<=0||val>24){alert(t.errHours);return;}
         store.hours=val;
-        refreshVisibility();
-        renderCalendar(); updateSummary();
+        refreshVisibility(); renderCalendar(); updateSummary();
       };
-
       $('#setupSkip').onclick=()=>{
         store.hours=8;
-        refreshVisibility();
-        renderCalendar(); updateSummary();
+        refreshVisibility(); renderCalendar(); updateSummary();
       };
-
       $('#btnEditPolicy').onclick=()=>{
         $('#setup').hidden=false;
         $('#calendar').hidden=true;
@@ -576,6 +729,7 @@
     document.addEventListener('DOMContentLoaded', ()=>{
       const yr=new Date().getFullYear();
       $('#yearFoot').textContent=yr;
+      $('#year').textContent=yr;
 
       if(!localStorage.getItem('lang')) store.lang=autoLang();
 
