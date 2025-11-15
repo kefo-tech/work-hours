@@ -33,6 +33,12 @@
         radial-gradient(800px 400px at 10% 110%, rgba(34,211,238,.12), transparent),
         var(--bg);
       color:var(--text);
+      /* منع تحديد النص ومنيو الضغط المطوّل قدر الإمكان */
+      -webkit-user-select:none;
+      -moz-user-select:none;
+      -ms-user-select:none;
+      user-select:none;
+      -webkit-touch-callout:none;
     }
 
     header{
@@ -175,6 +181,7 @@
           </select>
         </div>
         <button class="btn" id="btnPrint">🖨️ <span id="lblPrint">PDF</span></button>
+        <button class="btn" id="btnAbout"><span id="lblAbout">About us</span></button>
         <button class="btn" id="btnEditPolicy">⚙️ <span id="lblSettings">Settings</span></button>
         <button class="btn btn-danger" id="btnResetAll">🗑️ <span id="lblReset">Reset</span></button>
       </div>
@@ -280,6 +287,7 @@
         settings:'Einstellungen',
         reset:'Zurücksetzen',
         print:'PDF-Bericht',
+        about:'Über uns',
 
         setupTitle:'Schnelle Einrichtung',
         qOfficial:'Offizielle tägliche Arbeitszeit (Stunden)',
@@ -323,6 +331,7 @@
         settings:'Settings',
         reset:'Reset',
         print:'PDF Report',
+        about:'About us',
 
         setupTitle:'Quick setup',
         qOfficial:'Official daily work hours',
@@ -366,6 +375,7 @@
         settings:'الإعدادات',
         reset:'تصفير',
         print:'تقرير PDF',
+        about:'من نحن',
 
         setupTitle:'إعداد سريع',
         qOfficial:'عدد ساعات العمل الرسمية يوميًا (بالساعات)',
@@ -442,6 +452,7 @@
       $('#lblPrint').textContent=t.print;
       $('#lblSettings').textContent=t.settings;
       $('#lblReset').textContent=t.reset;
+      $('#lblAbout').textContent=t.about;
 
       $('#setupTitle').textContent=t.setupTitle;
       $('#qOfficial').textContent=t.qOfficial;
@@ -719,6 +730,35 @@
       };
     }
 
+    // زر "من نحن" → صفحة أخرى (about.html على نفس المشروع)
+    function wireAbout(){
+      $('#btnAbout').onclick=()=>{
+        // لاحقًا أنشئ ملف about.html في نفس الريبو
+        window.location.href = 'about.html';
+      };
+    }
+
+    // حماية أساسية: منع كليك يمين + منع بعض أشكال الضغط المطوّل
+    function wireProtection(){
+      // منع قائمة زر يمين الماوس
+      document.addEventListener('contextmenu', e => {
+        e.preventDefault();
+      });
+
+      // محاولة منع الضغط المطوّل (لن يمنع لقطة الشاشة من النظام)
+      let touchTimer=null;
+      document.addEventListener('touchstart', e => {
+        touchTimer = setTimeout(() => {
+          // بعد 600ms نمنع أي حدث افتراضي (منيو نسخ …)
+          e.preventDefault();
+        }, 600);
+      }, {passive:false});
+
+      document.addEventListener('touchend', () => {
+        if(touchTimer) clearTimeout(touchTimer);
+      });
+    }
+
     // تسجيل Service Worker لـ PWA
     if('serviceWorker' in navigator){
       window.addEventListener('load',()=>{
@@ -737,6 +777,8 @@
       initSetup();
       wireCalendarNav();
       wireModal();
+      wireAbout();
+      wireProtection();
       applyLang();
       refreshVisibility();
       renderCalendar(); updateSummary();
