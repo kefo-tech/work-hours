@@ -1,5 +1,5 @@
 // اسم الكاش
-const CACHE_NAME = 'kefo-work-hours-v2';
+const CACHE_NAME = 'kefo-work-hours-v3';
 
 // الملفات التي يتم تخزينها للعمل بدون إنترنت
 const URLS_TO_CACHE = [
