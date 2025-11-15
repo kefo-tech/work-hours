@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KeFoTube</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #111, #222);
+      padding-top: 60px;
+    }
+
+    header {
+      background-color: #20232a;
+      color: white;
+      padding: 7px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header .logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    header input[type="search"] {
+      width: 180px;
+      padding: 5px;
+      font-size: 16px;
+    }
+
+    header button {
+      padding: 5px 10px;
+      font-size: 16px;
+      background-color: #ff0000;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, #111, #222);
+    }
+
+    .video-item {
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .video-item img {
+      width: 100%;
+      height: auto;
+    }
+
+    .video-title {
+      padding: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .share-button {
+      display: block;
+      width: 100%;
+      text-align: center;
+      background-color: #008CBA;
+      color: white;
+      padding: 10px 0;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .share-button:hover {
+      background-color: #005f73;
+    }
+
+    .upload-icon {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background-color: #ffffff;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.99);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    .upload-icon img {
+      width: 60px;
+      height: 60px;
+    }
+
+    .upload-icon span {
+      position: absolute;
+      padding: 1px 20px;
+      bottom: -15px;
+      font-size: 13px;
+      width: 120px;
+      font-weight: bold;
+      color: white;
+      background-color: #0009;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      overflow: auto;
+      padding-top: 60px;
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      text-align: center;
+      border-radius: 10px;
+      position: relative;
+    }
+
+    .modal-content button {
+      padding: 10px 20px;
+      font-size: 16px;
+      color: white;
+      background-color: #ff0000;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .close {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+    }
+
+    .video-modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.9);
+      padding-top: 50px;
+    }
+
+    .video-modal-content {
+      position: relative;
+      background-color: #000;
+      margin: auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 1000px;
+      border-radius: 10px;
+    }
+
+    .video-iframe {
+      width: 100%;
+      height: 500px;
+      border: none;
+      border-radius: 5px;
+    }
+
+    .video-close {
+      position: absolute;
+      right: -15px;
+      top: -15px;
+      color: white;
+      font-size: 35px;
+      font-weight: bold;
+      cursor: pointer;
+      background: red;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (max-width: 768px) {
+      .video-iframe {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+
+  <header>
+    <div class="logo">KeFo.Trend</div>
+    <input type="search" id="searchInput" placeholder="ابحث عن فيديو..." onkeyup="filterVideos()">
+    <button onclick="filterVideos()">بحث</button>
+  </header>
+
+  <div class="container" id="videoContainer"></div>
+
+  <div class="upload-icon" onclick="showUploadModal()">
+    <img src="https://cdn3d.iconscout.com/3d/premium/thumb/video-upload-3d-icon-download-in-png-blend-fbx-gltf-file-formats--uploading-pack-user-interface-icons-9325699.png?f=webp" alt="رفع الفيديو">
+    <span>رفع فيديو</span>
+  </div>
+
+  <div id="uploadModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeUploadModal()">×</span>
+      <h2>أرسل لنا رابط الفيديو الخاص بك</h2>
+      <form id="videoForm">
+        <input type="text" id="videoTitle" placeholder="اسم الفيديو" required><br><br>
+        <input type="url" id="videoURL" placeholder="رابط الفيديو على YouTube" required><br><br>
+        <button type="submit">إرسال</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="videoModal" class="video-modal">
+    <div class="video-modal-content">
+      <span class="video-close" onclick="closeVideoModal()">×</span>
+      <iframe class="video-iframe" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPPs4wNE9s6KQ0Vido_dnVZW5cDHAHKNI",
+      authDomain: "kefo-trend.firebaseapp.com",
+      projectId: "kefo-trend",
+      storageBucket: "kefo-trend.appspot.com",
+      messagingSenderId: "915306957812",
+      appId: "1:915306957812:web:60d56c8a12cc6af49e07a1",
+      measurementId: "G-KQM4DY42DR"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    let videos = [];
+
+    async function loadVideosFromFirebase() {
+      const snapshot = await db.collection("videos").where("approved", "==", true).get();
+      videos = [];
+      snapshot.forEach(doc => videos.push(doc.data()));
+      displayVideos(videos);
+    }
+
+    function displayVideos(videos) {
+      const container = document.getElementById("videoContainer");
+      container.innerHTML = "";
+      videos.forEach(video => {
+        const videoId = extractVideoId(video.link);
+        if (!videoId) return;
+        const videoItem = document.createElement("div");
+        videoItem.classList.add("video-item");
+        videoItem.innerHTML = `
+          <img src="https://i.ytimg.com/vi/${videoId}/hqdefault.jpg" alt="${video.title}" onclick="openVideo('${video.link}')">
+          <div class="video-title">${video.title}</div>
+          <button class="share-button" onclick="shareVideo('${video.link}', '${video.title}')">شارك الفيديو</button>
+        `;
+        container.appendChild(videoItem);
+      });
+    }
+
+    function extractVideoId(url) {
+      const regExp = /^.*(?:youtu.be\/|v\/|embed\/|watch\\?v=|&v=)([^#&?]*).*/;
+      const match = url.match(regExp);
+      return match && match[1].length === 11 ? match[1] : null;
+    }
+
+    function filterVideos() {
+      const query = document.getElementById("searchInput").value.toLowerCase();
+      const filtered = videos.filter(v => v.title.toLowerCase().includes(query));
+      displayVideos(filtered);
+    }
+
+    function openVideo(link) {
+      const modal = document.getElementById("videoModal");
+      const iframe = modal.querySelector("iframe");
+      const videoId = extractVideoId(link);
+      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      modal.style.display = "block";
+    }
+
+    function closeVideoModal() {
+      const modal = document.getElementById("videoModal");
+      modal.querySelector("iframe").src = "";
+      modal.style.display = "none";
+    }
+
+    function showUploadModal() {
+      document.getElementById("uploadModal").style.display = "block";
+    }
+
+    function closeUploadModal() {
+      document.getElementById("uploadModal").style.display = "none";
+    }
+
+    document.getElementById("videoForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const title = document.getElementById("videoTitle").value.trim();
+      const link = document.getElementById("videoURL").value.trim();
+
+      if (!title || !link) {
+        alert("الرجاء تعبئة جميع الحقول");
+        return;
+      }
+
+      try {
+        await db.collection("videos").add({ title, link, approved: false });
+        alert("✅ شكراً لإرسال الفيديو! سيتم مراجعته من الإدارة قبل النشر.");
+        document.getElementById("videoForm").reset();
+        closeUploadModal();
+      } catch (error) {
+        console.error(error);
+        alert("❌ حدث خطأ أثناء رفع الفيديو");
+      }
+    });
+
+    function shareVideo(link, title) {
+      if (navigator.share) {
+        navigator.share({ title, url: link }).catch(console.error);
+      } else {
+        prompt("انسخ هذا الرابط وشاركه:", link);
+      }
+    }
+
+    window.onload = loadVideosFromFirebase;
+
+    // منع الضغط الطويل على الموبايل
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('touchstart', e => {
+      this.touchStartTime = new Date().getTime();
+    });
+    document.addEventListener('touchend', e => {
+      const touchDuration = new Date().getTime() - this.touchStartTime;
+      if (touchDuration > 500) e.preventDefault();
+    });
+
+    window.onclick = function (event) {
+      const videoModal = document.getElementById("videoModal");
+      const uploadModal = document.getElementById("uploadModal");
+      if (event.target === videoModal) closeVideoModal();
+      if (event.target === uploadModal) closeUploadModal();
+    };
+  </script>
+</body>
+</html>
