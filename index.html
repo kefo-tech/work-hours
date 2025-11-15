@@ -1,391 +1,405 @@
 <!DOCTYPE html>
-<html lang="ar">
+<!--
+  تطبيق: حاسِب ساعات العمل / Arbeitszeitrechner
+  المؤلف: KeFo.tech
+  إصلاحات: 1) ربط أزرار المودال بعد ظهوره في DOM (نقل <script> لنهاية الصفحة)
+           2) عند الطباعة، إخفاء التقويم وإظهار جدول التقرير فقط
+-->
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KeFoTube</title>
+  <title>حاسِب ساعات العمل · Arbeitszeitrechner</title>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: linear-gradient(135deg, #111, #222);
-      padding-top: 60px;
+    /* --------- هوية لونية عامة --------- */
+    :root{
+      --bg:#0f172a; --panel:#111827; --panel-2:#1f2937;
+      --muted:#9ca3af; --text:#e5e7eb;
+      --primary:#22d3ee; --accent:#a78bfa; --success:#34d399;
+      --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+
+    /* خلفية + خط */
+    body{
+      margin:0;
+      font-family:"Tajawal",system-ui,-apple-system,Segoe UI,Roboto,"Noto Kufi Arabic",Arial,sans-serif;
+      background:
+        radial-gradient(1200px 600px at 80% -10%, rgba(167,139,250,.15), transparent),
+        radial-gradient(800px 400px at 10% 110%, rgba(34,211,238,.12), transparent),
+        var(--bg);
+      color:var(--text);
     }
 
-    header {
-      background-color: #20232a;
-      color: white;
-      padding: 7px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    /* شريط علوي ثابت */
+    header{
+      position:sticky; top:0; z-index:5;
+      backdrop-filter:saturate(140%) blur(10px);
+      background:linear-gradient(180deg, rgba(15,23,42,.9), rgba(15,23,42,.6));
+      border-bottom:1px solid rgba(255,255,255,.05);
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:clamp(10px,3vw,16px)}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:clamp(6px,2vw,12px);flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--primary),var(--accent));color:#0b1020;font-weight:800;box-shadow:var(--shadow)}
+    h1{font-size:1.25rem;margin:0;font-weight:800}
+
+    .summary{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    .chip{
+      background:var(--panel-2);border:1px solid rgba(255,255,255,.06);
+      padding:6px clamp(8px,2vw,12px);border-radius:999px;
+      font-size:clamp(.78rem,2.4vw,.92rem);display:flex;gap:6px;align-items:center;min-height:32px
+    }
+    .chip b{color:#fff}
+
+    .btn{
+      appearance:none;border:0;background:var(--panel-2);color:var(--text);
+      padding:8px 12px;border-radius:12px;cursor:pointer;box-shadow:var(--shadow);
+      border:1px solid rgba(255,255,255,.06);font-weight:700;transition:.2s transform,.2s opacity
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{background:linear-gradient(135deg,var(--primary),var(--accent));color:#0b1020}
+    .btn-danger{background:linear-gradient(135deg,#fb7185,#fbbf24);color:#0b1020}
+
+    main{max-width:1100px;margin:clamp(12px,3.5vw,24px) auto;padding:clamp(10px,3vw,16px)}
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);box-shadow:var(--shadow);
+      padding:clamp(12px,3vw,16px);overflow:hidden
     }
 
-    header .logo {
-      font-size: 24px;
-      font-weight: bold;
+    /* شاشة الإعداد */
+    #setup{max-width:680px;margin:56px auto}
+    .q{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+    label{color:#cbd5e1;font-weight:700}
+    input[type="number"],input[type="time"],select{
+      width:100%;background:var(--panel);border:1px solid rgba(255,255,255,.08);
+      color:var(--text);padding:12px 14px;border-radius:12px;outline:none
+    }
+    .hint{color:var(--muted);font-size:.9rem}
+
+    /* --------- التقويم --------- */
+    .month-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin-bottom:10px}
+    .month-title{text-align:center;font-size:clamp(1.05rem,4vw,1.3rem);font-weight:900}
+    .nav{display:flex;gap:8px}
+
+    /* رؤوس أيام الأسبوع */
+    .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;width:100%}
+    .dow{
+      text-align:center;font-weight:700;color:var(--muted);
+      font-size:clamp(.8rem,2.2vw,.95rem);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis; /* منع التشوه */
+      line-height:1.5;padding:8px 0;
     }
 
-    header input[type="search"] {
-      width: 180px;
-      padding: 5px;
-      font-size: 16px;
+    /* خلايا أيام الشهر */
+    .day{
+      background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:14px;
+      display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+      min-height:clamp(70px,13vw,100px);padding:6px;position:relative;
+    }
+    .day.disabled{opacity:.35;filter:grayscale(30%)}
+    .today{outline:2px dashed var(--primary);outline-offset:2px}
+
+    .day .dnum{font-weight:700;color:#fff;font-size:clamp(.9rem,2.8vw,1rem);margin-top:4px}
+
+    /* زر القلم ثابت وخفيف */
+    .day .edit{
+      position:absolute;top:6px;right:6px;background:none;border:none;color:var(--muted);
+      cursor:pointer;font-size:.9rem;line-height:1;padding:2px 4px;border-radius:8px;
+      transition:.2s;user-select:none;
+    }
+    .day .edit:hover{color:var(--primary)}
+
+    .day .badge{
+      font-size:clamp(.75rem,2.5vw,.9rem);
+      padding:4px 8px;border-radius:10px;background:rgba(52,211,153,.15);
+      border:1px solid rgba(52,211,153,.3);color:#a7f3d0;margin-bottom:4px;
     }
 
-    header button {
-      padding: 5px 10px;
-      font-size: 16px;
-      background-color: #ff0000;
-      color: white;
-      border: none;
-      cursor: pointer;
+    /* المودال */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:40}
+    .modal{width:min(580px,94vw);background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+    .modal header{position:initial;background:var(--panel-2)}
+    .modal .content{padding:16px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .footer{display:flex;justify-content:space-between;gap:10px;padding:12px 16px}
+
+    /* --------- الطباعة: إظهار الجدول فقط --------- */
+    @media print{
+      body{background:#fff;color:#000}
+      header, footer, #setup, #calendar{display:none !important} /* أخفِ التقويم */
+      #printArea{display:block !important} /* أظهر جدول التقرير فقط */
     }
 
-    .container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 20px;
-      padding: 20px;
-      background: linear-gradient(135deg, #111, #222);
-    }
-
-    .video-item {
-      background-color: white;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
-      cursor: pointer;
-      position: relative;
-    }
-
-    .video-item img {
-      width: 100%;
-      height: auto;
-    }
-
-    .video-title {
-      padding: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      text-align: center;
-    }
-
-    .share-button {
-      display: block;
-      width: 100%;
-      text-align: center;
-      background-color: #008CBA;
-      color: white;
-      padding: 10px 0;
-      font-size: 14px;
-      border: none;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    .share-button:hover {
-      background-color: #005f73;
-    }
-
-    .upload-icon {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      background-color: #ffffff;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.99);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 1000;
-    }
-
-    .upload-icon img {
-      width: 60px;
-      height: 60px;
-    }
-
-    .upload-icon span {
-      position: absolute;
-      padding: 1px 20px;
-      bottom: -15px;
-      font-size: 13px;
-      width: 120px;
-      font-weight: bold;
-      color: white;
-      background-color: #0009;
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      overflow: auto;
-      padding-top: 60px;
-    }
-
-    .modal-content {
-      background-color: #fefefe;
-      margin: 5% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-      text-align: center;
-      border-radius: 10px;
-      position: relative;
-    }
-
-    .modal-content button {
-      padding: 10px 20px;
-      font-size: 16px;
-      color: white;
-      background-color: #ff0000;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .close {
-      color: #aaa;
-      font-size: 28px;
-      font-weight: bold;
-      position: absolute;
-      top: 10px;
-      right: 20px;
-      cursor: pointer;
-    }
-
-    .close:hover,
-    .close:focus {
-      color: black;
-      text-decoration: none;
-    }
-
-    .video-modal {
-      display: none;
-      position: fixed;
-      z-index: 2000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.9);
-      padding-top: 50px;
-    }
-
-    .video-modal-content {
-      position: relative;
-      background-color: #000;
-      margin: auto;
-      padding: 20px;
-      width: 90%;
-      max-width: 1000px;
-      border-radius: 10px;
-    }
-
-    .video-iframe {
-      width: 100%;
-      height: 500px;
-      border: none;
-      border-radius: 5px;
-    }
-
-    .video-close {
-      position: absolute;
-      right: -15px;
-      top: -15px;
-      color: white;
-      font-size: 35px;
-      font-weight: bold;
-      cursor: pointer;
-      background: red;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    @media (max-width: 768px) {
-      .video-iframe {
-        height: 300px;
-      }
-    }
+    footer{margin:24px auto;max-width:1100px;padding:0 16px 24px;color:var(--muted);text-align:center}
   </style>
 </head>
-<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
-
+<body>
+  <!-- الشريط العلوي -->
   <header>
-    <div class="logo">KeFo.Trend</div>
-    <input type="search" id="searchInput" placeholder="ابحث عن فيديو..." onkeyup="filterVideos()">
-    <button onclick="filterVideos()">بحث</button>
+    <div class="wrap topbar">
+      <div class="brand"><div class="logo">⏱️</div><h1 id="appTitle">حاسِب ساعات العمل</h1></div>
+      <div class="summary">
+        <div class="chip"><span id="lblMonthSum">ساعات هذا الشهر</span> : <b id="sum-month">0:00</b></div>
+        <div class="chip"><span id="lblOT">العمل الإضافي</span> : <b id="sum-ot">0:00</b></div>
+        <div class="chip" style="gap:6px"><span id="lblLang">اللغة</span> :
+          <select id="langSwitcher" class="btn"><option value="de">Deutsch</option><option value="ar">العربية</option></select>
+        </div>
+        <button class="btn" id="btnPrint">🖨️ <span id="lblPrint">تقرير PDF</span></button>
+        <button class="btn" id="btnEditPolicy">⚙️ <span id="lblSettings">الإعدادات</span></button>
+        <button class="btn btn-danger" id="btnResetAll">🗑️ <span id="lblReset">تصفير</span></button>
+      </div>
+    </div>
   </header>
 
-  <div class="container" id="videoContainer"></div>
+  <main>
+    <!-- شاشة الإعداد -->
+    <section id="setup" class="panel" hidden>
+      <h2 style="margin-top:0" id="setupTitle">إعداد سريع</h2>
+      <div class="q">
+        <label for="officialHours" id="qOfficial">عدد ساعات العمل الرسمية يوميًا</label>
+        <input id="officialHours" type="number" min="1" max="24" step="0.25" placeholder="8" />
+        <div class="hint" id="hintOfficial">سيتم حفظ هذا الإعداد ولن يُسأل مرة أخرى. يمكنك تغييره من الإعدادات.</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn" id="setupSkip">تخطي</button>
+        <button class="btn btn-primary" id="setupSave">التالي</button>
+      </div>
+    </section>
 
-  <div class="upload-icon" onclick="showUploadModal()">
-    <img src="https://cdn3d.iconscout.com/3d/premium/thumb/video-upload-3d-icon-download-in-png-blend-fbx-gltf-file-formats--uploading-pack-user-interface-icons-9325699.png?f=webp" alt="رفع الفيديو">
-    <span>رفع فيديو</span>
-  </div>
+    <!-- التقويم -->
+    <section id="calendar" class="panel" hidden>
+      <div class="month-header">
+        <div class="nav"><button class="btn" id="prevMonth">◀</button></div>
+        <div class="month-title" id="calTitle">—</div>
+        <div class="nav"><button class="btn" id="nextMonth">▶</button></div>
+      </div>
+      <div class="cal-grid" id="dow"></div>   <!-- رؤوس أيام الأسبوع -->
+      <div class="cal-grid" id="days"></div>  <!-- شبكة الأيام -->
+    </section>
 
-  <div id="uploadModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeUploadModal()">×</span>
-      <h2>أرسل لنا رابط الفيديو الخاص بك</h2>
-      <form id="videoForm">
-        <input type="text" id="videoTitle" placeholder="اسم الفيديو" required><br><br>
-        <input type="url" id="videoURL" placeholder="رابط الفيديو على YouTube" required><br><br>
-        <button type="submit">إرسال</button>
-      </form>
+    <!-- مساحة الطباعة فقط -->
+    <section id="printArea" style="display:none">
+      <h2 id="reportTitle" style="margin:0 0 12px 0"></h2>
+      <div id="reportMeta" style="margin-bottom:12px; color:#555"></div>
+      <table id="reportTable" style="width:100%; border-collapse:collapse; font-family:system-ui">
+        <thead><tr>
+          <th style="border:1px solid #777; padding:6px; text-align:center" id="thDate">التاريخ</th>
+          <th style="border:1px solid #777; padding:6px; text-align:center" id="thWorked">العمل</th>
+          <th style="border:1px solid #777; padding:6px; text-align:center" id="thOT">إضافي</th>
+        </tr></thead>
+        <tbody id="reportBody"></tbody>
+        <tfoot><tr>
+          <th style="border:1px solid #777; padding:6px; text-align:center" id="thTotal">الإجمالي</th>
+          <th style="border:1px solid #777; padding:6px; text-align:center" id="tdSumWorked">0:00</th>
+          <th style="border:1px solid #777; padding:6px; text-align:center" id="tdSumOT">0:00</th>
+        </tr></tfoot>
+      </table>
+      <div style="margin-top:12px; font-size:.9rem">© <span id="year"></span> KeFo.tech</div>
+    </section>
+  </main>
+
+  <footer>© <span id="yearFoot"></span> KeFo.tech — <span id="rights">جميع الحقوق محفوظة</span></footer>
+
+  <!-- ====== المودال: وضعناه قبل السكربت لضمان وجود العناصر عند ربط الأحداث ====== -->
+  <div class="modal-backdrop" id="modalBg" role="dialog" aria-modal="true">
+    <div class="modal">
+      <header class="wrap" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between">
+        <div style="font-weight:800" id="modalTitle">—</div>
+        <button class="btn" id="modalClose">✖</button>
+      </header>
+      <div class="content">
+        <div class="row">
+          <div class="q"><label id="lblStart">بداية الدوام</label><input id="inStart" type="time" /></div>
+          <div class="q"><label id="lblEnd">نهاية الدوام</label><input id="inEnd" type="time" /></div>
+        </div>
+        <div class="row">
+          <div class="q"><label id="lblBreak">مدة الاستراحة (بالدقائق)</label><input id="inBreak" type="number" min="0" step="5" placeholder="30" /></div>
+          <div class="q"><label id="lblTotal">المحصلة لليوم</label><input id="inResult" type="text" disabled value="0:00" /></div>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="btn" id="btnDeleteDay">🗑️ <span id="lblDeleteDay">حذف بيانات اليوم</span></button>
+        <div style="display:flex; gap:10px">
+          <button class="btn" id="btnNow">⏱️ <span id="lblNow">الآن</span></button>
+          <button class="btn btn-primary" id="btnSaveDay">💾 <span id="lblSave">حفظ</span></button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div id="videoModal" class="video-modal">
-    <div class="video-modal-content">
-      <span class="video-close" onclick="closeVideoModal()">×</span>
-      <iframe class="video-iframe" allowfullscreen></iframe>
-    </div>
-  </div>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
+  <!-- ====================== السكربت الآن في نهاية الصفحة ====================== -->
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBPPs4wNE9s6KQ0Vido_dnVZW5cDHAHKNI",
-      authDomain: "kefo-trend.firebaseapp.com",
-      projectId: "kefo-trend",
-      storageBucket: "kefo-trend.appspot.com",
-      messagingSenderId: "915306957812",
-      appId: "1:915306957812:web:60d56c8a12cc6af49e07a1",
-      measurementId: "G-KQM4DY42DR"
+    /* ==== ترجمة ==== */
+    const i18n = {
+      de:{appTitle:'Arbeitszeitrechner',monthSum:'Stunden dieses Monats',overtime:'Überstunden',language:'Sprache',settings:'Einstellungen',reset:'Zurücksetzen',print:'PDF-Bericht',setupTitle:'Schnelle Einrichtung',qOfficial:'Offizielle tägliche Arbeitszeit (Stunden)',hintOfficial:'Diese Einstellung wird gespeichert. Du kannst sie später in den Einstellungen ändern.',skip:'Überspringen',next:'Weiter',weekdays:['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'],start:'Arbeitsbeginn',end:'Arbeitsende',break:'Pause (Minuten)',total:'Tagesergebnis',deleteDay:'Tag löschen',now:'Jetzt',save:'Speichern',noData:'—',rights:'Alle Rechte vorbehalten',errHours:'Bitte eine Zahl zwischen 1 und 24 eingeben.',errTimes:'Bitte Beginn und Ende eingeben.',reportTitle:'Monatsbericht',thDate:'Datum',thWorked:'Arbeitszeit',thOT:'Überstunden',thTotal:'Summe'},
+      ar:{appTitle:'حاسِب ساعات العمل',monthSum:'ساعات هذا الشهر',overtime:'العمل الإضافي',language:'اللغة',settings:'الإعدادات',reset:'تصفير',print:'تقرير PDF',setupTitle:'إعداد سريع',qOfficial:'عدد ساعات العمل الرسمية يوميًا (بالساعات)',hintOfficial:'سيتم حفظ هذا الإعداد ويمكن تغييره لاحقًا من الإعدادات.',skip:'تخطي',next:'التالي',weekdays:['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'],start:'بداية الدوام',end:'نهاية الدوام',break:'مدة الاستراحة (بالدقائق)',total:'المحصلة لليوم',deleteDay:'حذف بيانات اليوم',now:'الآن',save:'حفظ',noData:'— لا بيانات —',rights:'جميع الحقوق محفوظة',errHours:'يرجى إدخال رقم صحيح بين 1 و 24',errTimes:'يرجى إدخال وقت البداية والنهاية',reportTitle:'تقرير الشهر',thDate:'التاريخ',thWorked:'العمل',thOT:'إضافي',thTotal:'الإجمالي'}
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    let videos = [];
+    /* ==== أدوات مساعدة ==== */
+    const $ = s=>document.querySelector(s);
+    const pad = n=>String(n).padStart(2,'0');
+    const fmtHM = m=>{const s=Math.max(0,Math.round(m||0));return `${Math.floor(s/60)}:${pad(s%60)}`};
+    const toKey=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
 
-    async function loadVideosFromFirebase() {
-      const snapshot = await db.collection("videos").where("approved", "==", true).get();
-      videos = [];
-      snapshot.forEach(doc => videos.push(doc.data()));
-      displayVideos(videos);
+    /* ==== التخزين ==== */
+    const store={
+      get hours(){return parseFloat(localStorage.getItem('officialDailyHours')||'0')||0},
+      set hours(v){localStorage.setItem('officialDailyHours',String(v))},
+      get logs(){return JSON.parse(localStorage.getItem('workLogs')||'{}')},
+      set logs(o){localStorage.setItem('workLogs',JSON.stringify(o))},
+      get lang(){return localStorage.getItem('lang')||autoDetectLang()},
+      set lang(v){localStorage.setItem('lang',v)},
+      reset(){localStorage.removeItem('workLogs');localStorage.removeItem('officialDailyHours')}
+    };
+
+    let view=new Date(); let activeKey=null;
+
+    function autoDetectLang(){const nav=(navigator.language||'de').toLowerCase();if(nav.startsWith('ar'))return'ar';if(nav.startsWith('de'))return'de';return'de'}
+
+    function applyLang(){
+      const lang=store.lang; const t=i18n[lang]||i18n.de;
+      document.documentElement.lang=lang;
+      document.documentElement.dir=(lang==='ar')?'rtl':'ltr';
+      $('#appTitle').textContent=t.appTitle; $('#lblMonthSum').textContent=t.monthSum; $('#lblOT').textContent=t.overtime; $('#lblLang').textContent=t.language; $('#lblSettings').textContent=t.settings; $('#lblReset').textContent=t.reset; $('#lblPrint').textContent=t.print; $('#setupTitle').textContent=t.setupTitle; $('#qOfficial').textContent=t.qOfficial; $('#hintOfficial').textContent=t.hintOfficial; $('#setupSkip').textContent=t.skip; $('#setupSave').textContent=t.next; $('#rights').textContent=t.rights;
+      renderWeekdays(); renderCalendarTitle(); updateSummary();
+      $('#reportTitle').textContent=`${t.reportTitle} — ${new Intl.DateTimeFormat(lang,{month:'long',year:'numeric'}).format(view)}`;
+      $('#thDate').textContent=t.thDate; $('#thWorked').textContent=t.thWorked; $('#thOT').textContent=t.thOT; $('#thTotal').textContent=t.thTotal;
     }
 
-    function displayVideos(videos) {
-      const container = document.getElementById("videoContainer");
-      container.innerHTML = "";
-      videos.forEach(video => {
-        const videoId = extractVideoId(video.link);
-        if (!videoId) return;
-        const videoItem = document.createElement("div");
-        videoItem.classList.add("video-item");
-        videoItem.innerHTML = `
-          <img src="https://i.ytimg.com/vi/${videoId}/hqdefault.jpg" alt="${video.title}" onclick="openVideo('${video.link}')">
-          <div class="video-title">${video.title}</div>
-          <button class="share-button" onclick="shareVideo('${video.link}', '${video.title}')">شارك الفيديو</button>
-        `;
-        container.appendChild(videoItem);
+    function renderWeekdays(){
+      const lang=store.lang; const t=i18n[lang]||i18n.de; const dow=$('#dow'); if(!dow) return; dow.innerHTML='';
+      for(const name of t.weekdays){const el=document.createElement('div'); el.className='dow'; el.textContent=name; dow.appendChild(el);}
+    }
+    function renderCalendarTitle(){const lang=store.lang; const el=$('#calTitle'); if(el) el.textContent=new Intl.DateTimeFormat(lang,{month:'long',year:'numeric'}).format(view);}
+
+    function renderCalendar(){
+      const y=view.getFullYear(), m=view.getMonth(); renderCalendarTitle();
+      const first=new Date(y,m,1), last=new Date(y,m+1,0);
+      const firstDow=(first.getDay()+6)%7; // الإثنين=0
+      const totalCells=firstDow+last.getDate();
+      const daysEl=$('#days'); if(!daysEl) return; daysEl.innerHTML='';
+      for(let i=0;i<totalCells;i++){
+        const cell=document.createElement('div');
+        if(i<firstDow){cell.className='day disabled';daysEl.appendChild(cell);continue;}
+        const d=i-firstDow+1; const key=toKey(y,m,d); cell.className='day';
+        const today=new Date();
+        if(y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate()) cell.classList.add('today');
+        const dnum=document.createElement('div'); dnum.className='dnum'; dnum.textContent=d; cell.appendChild(dnum);
+        const log=store.logs[key]; const res=document.createElement('div'); res.className='badge'; res.textContent=log?fmtHM(log.worked):(i18n[store.lang]||i18n.de).noData; cell.appendChild(res);
+        const editBtn=document.createElement('button'); editBtn.className='edit'; editBtn.textContent='✎'; editBtn.title='Edit'; editBtn.onclick=()=>openDayModal(key); cell.appendChild(editBtn);
+        daysEl.appendChild(cell);
+      }
+    }
+
+    function updateSummary(){
+      const y=view.getFullYear(), m=view.getMonth(); const logs=store.logs; let total=0, ot=0;
+      for(const k in logs){const [yy,mm]=k.split('-').map(Number); if(yy===y&&mm===m+1){total+=logs[k].worked||0; ot+=Math.max(0,(logs[k].worked||0)-store.hours*60);}}
+      $('#sum-month').textContent=fmtHM(total); $('#sum-ot').textContent=fmtHM(ot);
+    }
+
+    function openDayModal(key){
+      activeKey=key; const existing=store.logs[key]; const dt=new Date(key); const lang=store.lang;
+      $('#modalTitle').textContent=new Intl.DateTimeFormat(lang,{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(dt);
+      $('#inStart').value=existing?.start||''; $('#inEnd').value=existing?.end||''; $('#inBreak').value=existing?.break??''; $('#inResult').value=existing?fmtHM(existing.worked):'0:00';
+      $('#modalBg').style.display='flex';
+    }
+    function closeModal(){const bg=$('#modalBg'); if(bg) bg.style.display='none'; activeKey=null;}
+
+    function computeWorkedMins(start,end,brk){
+      if(!start||!end) return 0;
+      const [sh,sm]=start.split(':').map(Number); const [eh,em]=end.split(':').map(Number);
+      let s=sh*60+sm, e=eh*60+em; if(e<s) e+=1440; // دعم عبور منتصف الليل
+      return Math.max(0, e - s - (parseInt(brk||0)));
+    }
+
+    function wireModal(){
+      // تأكد من وجود العناصر (في حال تغييرات لاحقة)
+      const inStart=$('#inStart'), inEnd=$('#inEnd'), inBreak=$('#inBreak'), inResult=$('#inResult');
+      const btnSave=$('#btnSaveDay'), btnDelete=$('#btnDeleteDay'), btnClose=$('#modalClose'), btnNow=$('#btnNow'), bg=$('#modalBg');
+
+      const recalc=()=>{ inResult.value = fmtHM(computeWorkedMins(inStart.value, inEnd.value, inBreak.value)); };
+      [inStart,inEnd,inBreak].forEach(el=>el && el.addEventListener('input', recalc));
+
+      btnSave && (btnSave.onclick=()=>{
+        if(!activeKey) return;
+        const start=inStart.value, end=inEnd.value, brk=parseInt(inBreak.value||0);
+        const t=i18n[store.lang]||i18n.de;
+        if(!start||!end){ alert(t.errTimes); return; }
+        const worked=computeWorkedMins(start,end,brk);
+        const logs=store.logs; logs[activeKey]={start,end,break:brk,worked}; store.logs=logs;
+        renderCalendar(); updateSummary(); closeModal(); // << يغلق بعد الحفظ
+      });
+
+      btnDelete && (btnDelete.onclick=()=>{
+        if(!activeKey) return;
+        const logs=store.logs; delete logs[activeKey]; store.logs=logs;
+        renderCalendar(); updateSummary(); closeModal();
+      });
+
+      btnClose && (btnClose.onclick=closeModal);
+      bg && bg.addEventListener('click',e=>{ if(e.target.id==='modalBg') closeModal(); });
+
+      btnNow && (btnNow.onclick=()=>{
+        const now=new Date();
+        inStart.value=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        inEnd.value=`${pad((now.getHours()+8)%24)}:${pad(now.getMinutes())}`;
+        inBreak.value=30;
+        inResult.value=fmtHM(computeWorkedMins(inStart.value,inEnd.value,inBreak.value));
       });
     }
 
-    function extractVideoId(url) {
-      const regExp = /^.*(?:youtu.be\/|v\/|embed\/|watch\\?v=|&v=)([^#&?]*).*/;
-      const match = url.match(regExp);
-      return match && match[1].length === 11 ? match[1] : null;
+    function wireCalendarNav(){
+      $('#prevMonth').onclick=()=>{view=new Date(view.getFullYear(),view.getMonth()-1,1);renderCalendar();updateSummary();};
+      $('#nextMonth').onclick=()=>{view=new Date(view.getFullYear(),view.getMonth()+1,1);renderCalendar();updateSummary();};
+      $('#btnResetAll').onclick=()=>{ if(confirm('OK?')){store.reset(); refreshVisibility(); renderCalendar(); updateSummary(); $('#setup').hidden=false; $('#calendar').hidden=true;} };
+      $('#btnPrint').onclick=()=>{ buildReport(); window.print(); }; // عند الطباعة سيُخفى كل شيء عدا #printArea
     }
 
-    function filterVideos() {
-      const query = document.getElementById("searchInput").value.toLowerCase();
-      const filtered = videos.filter(v => v.title.toLowerCase().includes(query));
-      displayVideos(filtered);
+    function refreshVisibility(){const hasHours=store.hours>0; $('#setup').hidden=hasHours; $('#calendar').hidden=!hasHours;}
+
+    function initSetup(){
+      const input=$('#officialHours'); if(store.hours>0) input.value=store.hours;
+      $('#setupSave').onclick=()=>{const val=parseFloat(input.value); const t=i18n[store.lang]||i18n.de; if(!val||val<=0||val>24){alert(t.errHours);return} store.hours=val; refreshVisibility(); renderCalendar(); updateSummary();};
+      $('#setupSkip').onclick=()=>{store.hours=8; refreshVisibility(); renderCalendar(); updateSummary();};
+      $('#btnEditPolicy').onclick=()=>{$('#setup').hidden=false; $('#calendar').hidden=true;};
     }
 
-    function openVideo(link) {
-      const modal = document.getElementById("videoModal");
-      const iframe = modal.querySelector("iframe");
-      const videoId = extractVideoId(link);
-      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-      modal.style.display = "block";
+    function wireLang(){
+      const sel=$('#langSwitcher'); sel.value=store.lang;
+      sel.addEventListener('change',()=>{store.lang=sel.value; applyLang(); renderCalendar(); updateSummary();});
     }
 
-    function closeVideoModal() {
-      const modal = document.getElementById("videoModal");
-      modal.querySelector("iframe").src = "";
-      modal.style.display = "none";
-    }
-
-    function showUploadModal() {
-      document.getElementById("uploadModal").style.display = "block";
-    }
-
-    function closeUploadModal() {
-      document.getElementById("uploadModal").style.display = "none";
-    }
-
-    document.getElementById("videoForm").addEventListener("submit", async e => {
-      e.preventDefault();
-      const title = document.getElementById("videoTitle").value.trim();
-      const link = document.getElementById("videoURL").value.trim();
-
-      if (!title || !link) {
-        alert("الرجاء تعبئة جميع الحقول");
-        return;
+    function buildReport(){
+      const lang=store.lang; const t=i18n[lang]||i18n.de; const y=view.getFullYear(), m=view.getMonth();
+      $('#reportTitle').textContent=`${t.reportTitle} — ${new Intl.DateTimeFormat(lang,{month:'long',year:'numeric'}).format(view)}`;
+      $('#reportMeta').textContent=`${t.qOfficial}: ${store.hours}h`;
+      const body=$('#reportBody'); body.innerHTML='';
+      let sumW=0,sumOT=0; const last=new Date(y,m+1,0);
+      for(let d=1; d<=last.getDate(); d++){
+        const key=toKey(y,m,d); const log=store.logs[key]; const worked=log?log.worked:0; const ot=Math.max(0, worked - store.hours*60); sumW+=worked; sumOT+=ot;
+        const tr=document.createElement('tr');
+        const td1=document.createElement('td'); td1.style='border:1px solid #777; padding:6px; text-align:center';
+        const td2=document.createElement('td'); td2.style=td1.style;
+        const td3=document.createElement('td'); td3.style=td1.style;
+        td1.textContent=new Intl.DateTimeFormat(lang,{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m,d));
+        td2.textContent=log?fmtHM(worked):(t.noData.includes('—')?'—':t.noData);
+        td3.textContent=fmtHM(ot);
+        tr.append(td1,td2,td3); body.appendChild(tr);
       }
-
-      try {
-        await db.collection("videos").add({ title, link, approved: false });
-        alert("✅ شكراً لإرسال الفيديو! سيتم مراجعته من الإدارة قبل النشر.");
-        document.getElementById("videoForm").reset();
-        closeUploadModal();
-      } catch (error) {
-        console.error(error);
-        alert("❌ حدث خطأ أثناء رفع الفيديو");
-      }
-    });
-
-    function shareVideo(link, title) {
-      if (navigator.share) {
-        navigator.share({ title, url: link }).catch(console.error);
-      } else {
-        prompt("انسخ هذا الرابط وشاركه:", link);
-      }
+      $('#tdSumWorked').textContent=fmtHM(sumW); $('#tdSumOT').textContent=fmtHM(sumOT);
     }
 
-    window.onload = loadVideosFromFirebase;
-
-    // منع الضغط الطويل على الموبايل
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('touchstart', e => {
-      this.touchStartTime = new Date().getTime();
+    /* ==== التشغيل بعد اكتمال DOM ==== */
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const yr=new Date().getFullYear(); $('#year').textContent=yr; $('#yearFoot').textContent=yr;
+      if(!localStorage.getItem('lang')) store.lang=autoDetectLang();
+      wireLang(); applyLang(); initSetup(); refreshVisibility(); renderCalendar(); updateSummary(); wireCalendarNav(); wireModal();
+      // إذا لا توجد ساعات رسمية بعد، اعرض شاشة الإعداد
+      if(!(store.hours>0)) $('#setup').hidden=false; else $('#calendar').hidden=false;
     });
-    document.addEventListener('touchend', e => {
-      const touchDuration = new Date().getTime() - this.touchStartTime;
-      if (touchDuration > 500) e.preventDefault();
-    });
-
-    window.onclick = function (event) {
-      const videoModal = document.getElementById("videoModal");
-      const uploadModal = document.getElementById("uploadModal");
-      if (event.target === videoModal) closeVideoModal();
-      if (event.target === uploadModal) closeUploadModal();
-    };
   </script>
 </body>
 </html>
