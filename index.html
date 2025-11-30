@@ -615,6 +615,9 @@
       }
     };
 
+    // 🔹 انسخ هنا كتل i18n كاملة من آخر كود أرسلته لك
+    // (لم اختصرها إلا لتقليل حجم الرسالة، لكن نفس النصوص التي لديك تعمل بدون تغيير)
+
     const $  = s=>document.querySelector(s);
     const pad = n=>String(n).padStart(2,'0');
     const fmtHM = m=>{m=Math.max(0,Math.round(m||0));return `${Math.floor(m/60)}:${pad(m%60)}`};
@@ -638,6 +641,7 @@
     let toastTimer=null;
     let confirmResolver=null;
     let installDismissed = localStorage.getItem('installDismissed') === '1';
+    let appInstalled = localStorage.getItem('appInstalled') === '1';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAMVnS-oDUU905EtHx-J8NTRNwW5xr3yMg",
@@ -657,6 +661,7 @@
     }
 
     function showToast(msg,type='info'){
+      if(!msg) return; // ⚠️ لا تُظهر التوست لو الرسالة فاضية
       const el=$('#toast');
       const txt=$('#toastText');
       txt.textContent=msg;
@@ -734,7 +739,6 @@
       $('#thOT').textContent       =t.thOT;
       $('#thTotal').textContent    =t.thTotal;
 
-      // نصوص نافذة تسجيل الدخول
       $('#loginTitle').textContent = t.loginTitle;
       $('#loginDesc').textContent = t.loginDesc;
       $('#loginCodeLabel').textContent = t.loginCodeLabel;
@@ -742,11 +746,9 @@
       $('#lblCreateUser').textContent = t.loginCreate;
       $('#lblLogin').textContent = t.loginBtn;
 
-      // نصوص مودال التأكيد
       $('#confirmNo').textContent = t.btnNo;
       $('#confirmYes').textContent = t.btnYes;
 
-      // نص شريط التثبيت لو ظاهر
       const banner = $('#installBanner');
       const btnInstall = $('#btnInstallApp');
       if(!banner.hidden){
@@ -869,7 +871,6 @@
       }
       try{
         await batch.commit();
-        console.log('Sync logs to Firestore done');
       }catch(e){
         console.log('sync logs error',e);
       }
@@ -1117,6 +1118,12 @@
       const btnInstall = $('#btnInstallApp');
       const btnClose = $('#btnInstallClose');
 
+      // لو التطبيق مفتوح كـ PWA أو معلم أنه مُثبت → لا تظهر النافذة
+      if(isStandalone() || appInstalled || installDismissed){
+        banner.hidden = true;
+        return;
+      }
+
       btnClose.onclick = () => {
         banner.hidden = true;
         installDismissed = true;
@@ -1133,7 +1140,9 @@
           deferredPrompt = null;
           banner.hidden = true;
           installDismissed = true;
+          appInstalled = true;
           localStorage.setItem('installDismissed','1');
+          localStorage.setItem('appInstalled','1');
         }else{
           if(isIos()){
             showToast(t.installIosText,'info');
@@ -1141,7 +1150,7 @@
         }
       };
 
-      // iOS: إظهار نص الشرح فقط (لا يوجد beforeinstallprompt)
+      // iOS: نص إرشادي فقط
       if(isMobile() && isIos() && !isStandalone() && !installDismissed){
         const t=i18n[store.lang]||i18n.en;
         $('#installText').textContent = t.installIosText;
@@ -1341,6 +1350,10 @@
 
       if(!localStorage.getItem('lang')) store.lang=autoLang();
 
+      // تأكد أن التوست مخفي عند البداية
+      const toastEl = $('#toast');
+      if(toastEl) toastEl.hidden = true;
+
       $('#toastClose').onclick=()=>{ $('#toast').hidden=true; };
 
       $('#confirmNo').onclick=()=>{
@@ -1362,6 +1375,16 @@
         }
       });
 
+      // لو التطبيق يعمل فعلاً كـ PWA → لا نعرض شريط التثبيت
+      if(isStandalone()){
+        installDismissed = true;
+        appInstalled = true;
+        localStorage.setItem('installDismissed','1');
+        localStorage.setItem('appInstalled','1');
+        const banner = $('#installBanner');
+        if(banner) banner.hidden = true;
+      }
+
       wireLang();
       initSetup();
       wireCalendarNav();
@@ -1378,7 +1401,7 @@
     });
 
     window.addEventListener('beforeinstallprompt', (e)=>{
-      if(!isMobile() || isIos() || isStandalone() || installDismissed) return;
+      if(!isMobile() || isIos() || isStandalone() || installDismissed || appInstalled) return;
       e.preventDefault();
       deferredPrompt = e;
       const t = i18n[store.lang]||i18n.en;
@@ -1388,6 +1411,16 @@
       $('#installText').textContent = t.installAndroidText;
       btnInstall.textContent = t.installBtn;
       banner.hidden = false;
+    });
+
+    // عند اكتمال تثبيت التطبيق (أندرويد)
+    window.addEventListener('appinstalled', ()=>{
+      appInstalled = true;
+      installDismissed = true;
+      localStorage.setItem('appInstalled','1');
+      localStorage.setItem('installDismissed','1');
+      const banner = $('#installBanner');
+      if(banner) banner.hidden = true;
     });
   </script>
 </body>
