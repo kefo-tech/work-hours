@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   KeFo Work Hours – PWA
-  حساب ساعات العمل مع تقويم + PDF أفقي منظم + 3 لغات + PWA + Firebase + Login KeFo + Toast + Confirm Modal
+  حساب ساعات العمل مع تقويم + PDF أفقي منظم + 3 لغات + PWA + Firebase + Login KeFo + Sync + Toast + Confirm Modal
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -245,7 +245,7 @@
     </div>
   </header>
 
-  <!-- Toast لإظهار الرسائل بدلاً من alert -->
+  <!-- Toast -->
   <div id="toast" class="toast" hidden>
     <span id="toastText"></span>
     <button id="toastClose">✖</button>
@@ -636,7 +636,6 @@
     let toastTimer=null;
     let confirmResolver=null;
 
-    // إعدادات Firebase الخاصة بمشروعك
     const firebaseConfig = {
       apiKey: "AIzaSyAMVnS-oDUU905EtHx-J8NTRNwW5xr3yMg",
       authDomain: "kefo-work-hours.firebaseapp.com",
@@ -856,6 +855,24 @@
       return Math.max(0, computeDuration(start,end) - (parseInt(brk)||0));
     }
 
+    async function syncLocalLogsToFirestore(){
+      if(!db || !userCode) return;
+      const logs = store.logs;
+      const userRef = db.collection('users').doc(userCode);
+      const batch = db.batch();
+      for(const key in logs){
+        const logData = logs[key];
+        const docRef = userRef.collection('logs').doc(key);
+        batch.set(docRef, logData, {merge:true});
+      }
+      try{
+        await batch.commit();
+        console.log('Sync logs to Firestore done');
+      }catch(e){
+        console.log('sync logs error',e);
+      }
+    }
+
     function wireModal(){
       const recalc=()=>{
         $('#inResult').value = fmtHM(
@@ -939,9 +956,7 @@
         const log=logs[key];
         if(!log) continue;
 
-        const startDateStr=new Intl.DateTimeFormat(store.lang,{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m,d));
-        const endDateStr  =startDateStr;
-
+        const dateStr=new Intl.DateTimeFormat(store.lang,{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m,d));
         const durationMins=computeDuration(log.start,log.end);
         const workedMins  =log.worked||0;
         const breakMins   =log.break||0;
@@ -953,9 +968,9 @@
 
         const tr=document.createElement('tr');
         tr.innerHTML=`
-          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${startDateStr}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${dateStr}</td>
           <td style="border:1px solid #777;padding:3px 4px;text-align:center">${log.start||''}</td>
-          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${endDateStr}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${dateStr}</td>
           <td style="border:1px solid #777;padding:3px 4px;text-align:center">${log.end||''}</td>
           <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(durationMins)}</td>
           <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(workedMins)}</td>
@@ -1169,8 +1184,6 @@
         });
     }
 
-    // ====== تسجيل الدخول بكود KeFo ======
-
     function openLoginModal(){
       $('#loginBg').style.display='flex';
     }
@@ -1232,6 +1245,9 @@
               officialDailyHours: store.hours || 8,
               lang: store.lang
             },{merge:true});
+
+            await syncLocalLogsToFirestore();
+
           }catch(e){console.log('create user error',e);}
         }
 
@@ -1307,10 +1323,8 @@
 
       if(!localStorage.getItem('lang')) store.lang=autoLang();
 
-      // زر إغلاق التوست
       $('#toastClose').onclick=()=>{ $('#toast').hidden=true; };
 
-      // أزرار مودال التأكيد
       $('#confirmNo').onclick=()=>{
         if(confirmResolver) confirmResolver(false);
         closeConfirm();
