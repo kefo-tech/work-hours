@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   KeFo Work Hours – PWA
-  حساب ساعات العمل مع تقويم + PDF أفقي منظم + 3 لغات + PWA + Firebase + Login KeFo + Sync + Toast + Confirm Modal
+  حساب ساعات العمل مع تقويم + PDF أفقي منظم + 3 لغات + PWA + Firebase + Login KeFo + Sync
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -175,41 +175,11 @@
       line-height:1.5;
     }
 
-    /* Toast */
-    .toast{
-      position:fixed;
-      top:12px;
-      left:50%;
-      transform:translateX(-50%);
-      background:var(--panel-2);
-      color:var(--text);
-      padding:10px 14px;
-      border-radius:999px;
-      box-shadow:var(--shadow);
-      display:flex;
-      align-items:center;
-      gap:10px;
-      z-index:50;
-      border:1px solid rgba(255,255,255,.12);
-      font-size:.85rem;
-      max-width:90%;
-      backdrop-filter:blur(10px);
-    }
-    .toast-success{border-color:rgba(52,211,153,.9);}
-    .toast-error{border-color:rgba(248,113,113,.9);}
-    #toastClose{
-      background:transparent;
-      border:0;
-      color:var(--muted);
-      cursor:pointer;
-      font-size:.9rem;
-    }
-
     /* الطباعة: صفحة أفقية + جدول فقط */
     @media print{
       @page { size: A4 landscape; margin: 10mm; }
       body{background:#fff;color:#000;font-size:11px}
-      header, footer, #setup, #calendar, #installBanner, #loginBg, #confirmBg, #toast{display:none !important}
+      header, footer, #setup, #calendar, #installBanner, #loginBg, #confirmBg{display:none !important}
       #printArea{display:block !important}
     }
 
@@ -244,12 +214,6 @@
       </div>
     </div>
   </header>
-
-  <!-- Toast -->
-  <div id="toast" class="toast" hidden>
-    <span id="toastText"></span>
-    <button id="toastClose">✖</button>
-  </div>
 
   <!-- شريط اقتراح تثبيت التطبيق للجوال -->
   <div id="installBanner" class="install-bar" hidden>
@@ -382,7 +346,7 @@
     </div>
   </div>
 
-  <!-- مودال تأكيد (بدل confirm) -->
+  <!-- مودال تأكيد (Reset) -->
   <div class="modal-backdrop" id="confirmBg" role="alertdialog" aria-modal="true">
     <div class="modal">
       <header class="wrap" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
@@ -615,9 +579,6 @@
       }
     };
 
-    // 🔹 انسخ هنا كتل i18n كاملة من آخر كود أرسلته لك
-    // (لم اختصرها إلا لتقليل حجم الرسالة، لكن نفس النصوص التي لديك تعمل بدون تغيير)
-
     const $  = s=>document.querySelector(s);
     const pad = n=>String(n).padStart(2,'0');
     const fmtHM = m=>{m=Math.max(0,Math.round(m||0));return `${Math.floor(m/60)}:${pad(m%60)}`};
@@ -638,7 +599,6 @@
     let db=null;
     let userCode=null;
     let deferredPrompt=null;
-    let toastTimer=null;
     let confirmResolver=null;
     let installDismissed = localStorage.getItem('installDismissed') === '1';
     let appInstalled = localStorage.getItem('appInstalled') === '1';
@@ -658,19 +618,6 @@
       if(nav.startsWith('de')) return 'de';
       if(nav.startsWith('en')) return 'en';
       return 'en';
-    }
-
-    function showToast(msg,type='info'){
-      if(!msg) return; // ⚠️ لا تُظهر التوست لو الرسالة فاضية
-      const el=$('#toast');
-      const txt=$('#toastText');
-      txt.textContent=msg;
-      el.classList.remove('toast-error','toast-success');
-      if(type==='error') el.classList.add('toast-error');
-      else if(type==='success') el.classList.add('toast-success');
-      el.hidden=false;
-      if(toastTimer) clearTimeout(toastTimer);
-      toastTimer=setTimeout(()=>{el.hidden=true;},5000);
     }
 
     function showConfirm(message){
@@ -749,6 +696,7 @@
       $('#confirmNo').textContent = t.btnNo;
       $('#confirmYes').textContent = t.btnYes;
 
+      // تحديث نص شريط التثبيت إن كان ظاهر
       const banner = $('#installBanner');
       const btnInstall = $('#btnInstallApp');
       if(!banner.hidden){
@@ -893,7 +841,7 @@
         const end  =$('#inEnd').value;
         const brk  =$('#inBreak').value||0;
         if(!start||!end){
-          showToast(t.errTimes,'error');
+          alert(t.errTimes);
           return;
         }
         const worked=computeWorked(start,end,brk);
@@ -1002,7 +950,7 @@
         const val=parseFloat(input.value);
         const t=i18n[store.lang]||i18n.en;
         if(!val||val<=0||val>24){
-          showToast(t.errHours,'error');
+          alert(t.errHours);
           return;
         }
         store.hours=val;
@@ -1118,11 +1066,13 @@
       const btnInstall = $('#btnInstallApp');
       const btnClose = $('#btnInstallClose');
 
-      // لو التطبيق مفتوح كـ PWA أو معلم أنه مُثبت → لا تظهر النافذة
+      // لو التطبيق مفتوح كـ PWA أو معلم أنه مُثبت أو تم إغلاقه سابقًا → لا تظهر النافذة
       if(isStandalone() || appInstalled || installDismissed){
         banner.hidden = true;
         return;
       }
+
+      const t=i18n[store.lang]||i18n.en;
 
       btnClose.onclick = () => {
         banner.hidden = true;
@@ -1131,7 +1081,6 @@
       };
 
       btnInstall.onclick = async () => {
-        const t=i18n[store.lang]||i18n.en;
         if(deferredPrompt){
           deferredPrompt.prompt();
           try{
@@ -1144,15 +1093,16 @@
           localStorage.setItem('installDismissed','1');
           localStorage.setItem('appInstalled','1');
         }else{
+          // iOS: فقط نصيحة
           if(isIos()){
-            showToast(t.installIosText,'info');
+            alert(t.installIosText);
           }
         }
       };
 
-      // iOS: نص إرشادي فقط
+      // أندرويد: ننتظر beforeinstallprompt → سيُظهر الشريط من هناك
+      // iOS: نظهر الشريط بنصيحة فقط
       if(isMobile() && isIos() && !isStandalone() && !installDismissed){
-        const t=i18n[store.lang]||i18n.en;
         $('#installText').textContent = t.installIosText;
         btnInstall.textContent = t.installBtn;
         banner.hidden = false;
@@ -1236,7 +1186,7 @@
         }
       }catch(e){
         console.log('load user error',e);
-        showToast('Cloud sync error (Firestore Rules?)','error');
+        alert('Cloud sync error (Firestore Rules?)');
       }
 
       updateAccountCodeUI();
@@ -1272,7 +1222,7 @@
           }catch(e){console.log('create user error',e);}
         }
 
-        showToast((t.loginCodeMsg||'Your login code:') + ' ' + code,'success');
+        alert((t.loginCodeMsg||'Your login code:') + ' ' + code);
         closeLoginModal();
         loadUserDataFromFirestore();
       };
@@ -1281,7 +1231,7 @@
         const t=i18n[store.lang]||i18n.en;
         const code = $('#loginCodeInput').value.trim();
         if(!code){
-          showToast(t.loginEmpty || 'Please enter your code.','error');
+          alert(t.loginEmpty || 'Please enter your code.');
           return;
         }
         userCode = code;
@@ -1291,7 +1241,7 @@
           try{
             const snap = await db.collection('users').doc(code).get();
             if(!snap.exists){
-              showToast(t.loginNotFound || 'Code not found.','error');
+              alert(t.loginNotFound || 'Code not found.');
               localStorage.removeItem('userCode');
               userCode=null;
               updateAccountCodeUI();
@@ -1299,7 +1249,7 @@
             }
           }catch(e){
             console.log('login error',e);
-            showToast('Cloud error on login','error');
+            alert('Cloud error on login');
           }
         }
 
@@ -1319,14 +1269,11 @@
       btnSwitch.onclick = ()=>{
         const t=i18n[store.lang]||i18n.en;
         if(!userCode){
-          showToast(t.loginEmpty || 'Please enter your code or create one first.','info');
+          alert(t.loginEmpty || 'Please enter your code or create one first.');
           openLoginModal();
           return;
         }
-        showToast(
-          (t.switchDeviceHint || 'Use this code on your new device:') + ' ' + userCode,
-          'success'
-        );
+        alert((t.switchDeviceHint || 'Use this code on your new device:') + ' ' + userCode);
       };
     }
 
@@ -1350,12 +1297,7 @@
 
       if(!localStorage.getItem('lang')) store.lang=autoLang();
 
-      // تأكد أن التوست مخفي عند البداية
-      const toastEl = $('#toast');
-      if(toastEl) toastEl.hidden = true;
-
-      $('#toastClose').onclick=()=>{ $('#toast').hidden=true; };
-
+      // مودال التأكيد
       $('#confirmNo').onclick=()=>{
         if(confirmResolver) confirmResolver(false);
         closeConfirm();
@@ -1401,6 +1343,7 @@
     });
 
     window.addEventListener('beforeinstallprompt', (e)=>{
+      // للمتصفح (أندرويد فقط)
       if(!isMobile() || isIos() || isStandalone() || installDismissed || appInstalled) return;
       e.preventDefault();
       deferredPrompt = e;
