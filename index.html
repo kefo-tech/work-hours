@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   KeFo Work Hours – PWA
-  حساب ساعات العمل مع تقويم + PDF أفقي منظم + 3 لغات + PWA
+  حساب ساعات العمل مع تقويم + PDF أفقي منظم + 3 لغات + PWA + Firebase visitors + Install banner
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -150,11 +150,37 @@
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .footer{display:flex;justify-content:space-between;gap:10px;padding:12px 16px}
 
+    /* شريط تنبيه تثبيت التطبيق */
+    .install-bar{
+      position:fixed;
+      bottom:10px;
+      left:50%;
+      transform:translateX(-50%);
+      max-width:640px;
+      width:calc(100% - 20px);
+      background:var(--panel-2);
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:var(--shadow);
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      z-index:30;
+      font-size:.85rem;
+    }
+    .install-text{
+      flex:1;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
     /* الطباعة: صفحة أفقية + جدول فقط */
     @media print{
       @page { size: A4 landscape; margin: 10mm; }
       body{background:#fff;color:#000;font-size:11px}
-      header, footer, #setup, #calendar{display:none !important}
+      header, footer, #setup, #calendar, #installBanner{display:none !important}
       #printArea{display:block !important}
     }
 
@@ -172,6 +198,7 @@
       <div class="summary">
         <div class="chip"><span id="lblMonthSum">Hours</span> : <b id="sum-month">0:00</b></div>
         <div class="chip"><span id="lblOT">OT</span> : <b id="sum-ot">0:00</b></div>
+        <div class="chip"><span id="lblVisitors">Visitors (24h)</span> : <b id="visitors24h">0</b></div>
         <div class="chip" style="gap:6px">
           <span id="lblLang">Language</span> :
           <select id="langSwitcher" class="btn">
@@ -187,6 +214,17 @@
       </div>
     </div>
   </header>
+
+  <!-- شريط اقتراح تثبيت التطبيق للجوال -->
+  <div id="installBanner" class="install-bar" hidden>
+    <div class="install-text" id="installText">
+      <!-- النص سيتم تغييره حسب اللغة والنظام -->
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+      <button class="btn btn-primary" id="btnInstallApp">Install</button>
+      <button class="btn" id="btnInstallClose">✖</button>
+    </div>
+  </div>
 
   <main>
     <!-- شاشة الإعداد -->
@@ -276,6 +314,11 @@
     </div>
   </div>
 
+  <!-- Firebase SDK (Compat) -->
+  <!-- استبدل الروابط بالإصدار الذي تفضّله إن أردت -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
   <script>
     /* ========= ترجمة النصوص (3 لغات) ========= */
     const i18n = {
@@ -283,6 +326,7 @@
         appTitle:'Arbeitszeitrechner',
         monthSum:'Stunden dieses Monats',
         overtime:'Überstunden',
+        visitors24:'Besucher (letzte 24h)',
         language:'Sprache',
         settings:'Einstellungen',
         reset:'Zurücksetzen',
@@ -321,12 +365,17 @@
         thOT:'Überstunden',
         thTotal:'Gesamt',
 
+        installAndroidText:'Installiere die App, um alle Funktionen nutzen zu können.',
+        installIosText:'Um die App zu installieren: Öffne diese Seite in Safari, tippe auf das Teilen-Symbol und wähle „Zum Home-Bildschirm hinzufügen“.',
+        installBtn:'App installieren',
+
         rights:'Alle Rechte vorbehalten'
       },
       en:{
         appTitle:'Work Hours Calculator',
         monthSum:'Hours this month',
         overtime:'Overtime',
+        visitors24:'Visitors (last 24h)',
         language:'Language',
         settings:'Settings',
         reset:'Reset',
@@ -365,12 +414,17 @@
         thOT:'Overtime',
         thTotal:'Total',
 
+        installAndroidText:'We recommend installing the app to use all available features.',
+        installIosText:'To install on iPhone: open this site in Safari, tap the Share button, then choose “Add to Home Screen”.',
+        installBtn:'Install app',
+
         rights:'All rights reserved'
       },
       ar:{
         appTitle:'حاسِب ساعات العمل',
         monthSum:'ساعات هذا الشهر',
         overtime:'العمل الإضافي',
+        visitors24:'الزائرون آخر ٢٤ ساعة',
         language:'اللغة',
         settings:'الإعدادات',
         reset:'تصفير',
@@ -409,6 +463,10 @@
         thOT:'العمل الإضافي',
         thTotal:'الإجمالي',
 
+        installAndroidText:'ننصحك بتثبيت التطبيق لاستخدام جميع الميزات المتاحة.',
+        installIosText:'لتثبيت التطبيق على الآيفون: افتح الموقع في Safari، اضغط على زر المشاركة، ثم اختر "إضافة إلى الشاشة الرئيسية".',
+        installBtn:'تثبيت التطبيق',
+
         rights:'جميع الحقوق محفوظة'
       }
     };
@@ -431,6 +489,20 @@
     let view=new Date();
     let activeKey=null;
 
+    // Firebase
+    let db=null;
+
+    // ⚠️ استبدل هذه القيم بقيم مشروعك من صفحة إعدادات Firebase
+    const firebaseConfig = {
+  apiKey: "AIzaSyAMVnS-oDUU905EtHx-J8NTRNwW5xr3yMg",
+  authDomain: "kefo-work-hours.firebaseapp.com",
+  projectId: "kefo-work-hours",
+  storageBucket: "kefo-work-hours.firebasestorage.app",
+  messagingSenderId: "345952050958",
+  appId: "1:345952050958:web:170e06f285cf181b1a815f"
+};
+
+
     function autoLang(){
       const nav=(navigator.language||'en').toLowerCase();
       if(nav.startsWith('ar')) return 'ar';
@@ -448,6 +520,7 @@
       $('#appTitle').textContent=t.appTitle;
       $('#lblMonthSum').textContent=t.monthSum;
       $('#lblOT').textContent=t.overtime;
+      $('#lblVisitors').textContent=t.visitors24;
       $('#lblLang').textContent=t.language;
       $('#lblPrint').textContent=t.print;
       $('#lblSettings').textContent=t.settings;
@@ -479,6 +552,19 @@
       $('#thBreak').textContent    =t.thBreak;
       $('#thOT').textContent       =t.thOT;
       $('#thTotal').textContent    =t.thTotal;
+
+      // تحديث نص شريط التثبيت إذا كان ظاهرًا
+      const banner = $('#installBanner');
+      const btnInstall = $('#btnInstallApp');
+      if(!banner.hidden){
+        if(isIos()){
+          $('#installText').textContent = t.installIosText;
+          btnInstall.textContent = t.installBtn;
+        }else{
+          $('#installText').textContent = t.installAndroidText;
+          btnInstall.textContent = t.installBtn;
+        }
+      }
 
       renderWeekdays();
       renderCalendarTitle();
@@ -749,7 +835,6 @@
       let touchTimer=null;
       document.addEventListener('touchstart', e => {
         touchTimer = setTimeout(() => {
-          // بعد 600ms نمنع أي حدث افتراضي (منيو نسخ …)
           e.preventDefault();
         }, 600);
       }, {passive:false});
@@ -759,11 +844,99 @@
       });
     }
 
+    // كاشف نوع الجهاز/الوضع
+    function isIos(){
+      return /iphone|ipad|ipod/i.test(navigator.userAgent);
+    }
+    function isMobile(){
+      return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    }
+    function isStandalone(){
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    let deferredPrompt = null;
+
+    function setupInstallBanner(){
+      const banner = $('#installBanner');
+      const btnInstall = $('#btnInstallApp');
+      const btnClose = $('#btnInstallClose');
+      const t = i18n[store.lang]||i18n.en;
+
+      btnClose.onclick = () => {
+        banner.hidden = true;
+      };
+
+      btnInstall.onclick = async () => {
+        if(deferredPrompt){
+          deferredPrompt.prompt();
+          try{
+            await deferredPrompt.userChoice;
+          }catch(_){}
+          deferredPrompt = null;
+          banner.hidden = true;
+        }else{
+          // على iOS يمكننا فقط عرض التعليمات
+          if(isIos()){
+            alert(t.installIosText);
+          }
+        }
+      };
+
+      // إن كان iOS + ليس في الوضع المستقل → إظهار تعليمات التثبيت (بدون انتظار beforeinstallprompt)
+      if(isMobile() && isIos() && !isStandalone()){
+        $('#installText').textContent = t.installIosText;
+        btnInstall.textContent = t.installBtn;
+        banner.hidden = false;
+      }
+    }
+
     // تسجيل Service Worker لـ PWA
     if('serviceWorker' in navigator){
       window.addEventListener('load',()=>{
         navigator.serviceWorker.register('./sw.js').catch(err=>console.log('SW failed',err));
       });
+    }
+
+    // Firebase init + visitor counter
+    function initFirebase(){
+      if(typeof firebase === 'undefined'){ return; }
+      try{
+        if(firebase.apps && !firebase.apps.length){
+          firebase.initializeApp(firebaseConfig);
+        }else if(!firebase.apps){
+          firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+        trackVisitorLast24h();
+      }catch(err){
+        console.log('Firebase init error', err);
+      }
+    }
+
+    function trackVisitorLast24h(){
+      if(!db) return;
+      const visitsRef = db.collection('visits');
+      const now = new Date();
+
+      // تسجيل زيارة جديدة
+      visitsRef.add({
+        ts: firebase.firestore.FieldValue.serverTimestamp(),
+        userAgent: navigator.userAgent || '',
+        createdAt: now.toISOString()
+      }).catch(err=>console.log('visit add error',err));
+
+      // حساب عدد الزيارات آخر 24 ساعة
+      const cutoff = new Date(now.getTime() - 24*60*60*1000);
+      visitsRef
+        .where('ts','>=',cutoff)
+        .get()
+        .then(snap=>{
+          $('#visitors24h').textContent = snap.size;
+        })
+        .catch(err=>{
+          console.log('visits query error',err);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', ()=>{
@@ -779,9 +952,27 @@
       wireModal();
       wireAbout();
       wireProtection();
+      setupInstallBanner();
       applyLang();
       refreshVisibility();
       renderCalendar(); updateSummary();
+
+      // Firebase + عداد الزوار
+      initFirebase();
+    });
+
+    // التقاط beforeinstallprompt لأندرويد والمتصفحات الداعمة
+    window.addEventListener('beforeinstallprompt', (e)=>{
+      if(!isMobile() || isIos() || isStandalone()) return;
+      e.preventDefault();
+      deferredPrompt = e;
+      const t = i18n[store.lang]||i18n.en;
+      const banner = $('#installBanner');
+      const btnInstall = $('#btnInstallApp');
+
+      $('#installText').textContent = t.installAndroidText;
+      btnInstall.textContent = t.installBtn;
+      banner.hidden = false;
     });
   </script>
 </body>
