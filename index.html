@@ -175,7 +175,7 @@
       line-height:1.5;
     }
 
-    /* Toast رسائل جميلة بدل alert */
+    /* Toast */
     .toast{
       position:fixed;
       top:12px;
@@ -363,6 +363,7 @@
     <div class="modal">
       <header class="wrap" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
         <div style="font-weight:800" id="loginTitle">تسجيل الدخول</div>
+        <button class="btn" id="loginClose">✖</button>
       </header>
       <div class="content">
         <p id="loginDesc" class="hint" style="margin-bottom:10px">
@@ -386,6 +387,7 @@
     <div class="modal">
       <header class="wrap" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
         <div style="font-weight:800" id="confirmTitle">تأكيد</div>
+        <button class="btn" id="confirmClose">✖</button>
       </header>
       <div class="content">
         <p id="confirmMessage" class="hint"></p>
@@ -635,6 +637,7 @@
     let deferredPrompt=null;
     let toastTimer=null;
     let confirmResolver=null;
+    let installDismissed = localStorage.getItem('installDismissed') === '1';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAMVnS-oDUU905EtHx-J8NTRNwW5xr3yMg",
@@ -743,17 +746,16 @@
       $('#confirmNo').textContent = t.btnNo;
       $('#confirmYes').textContent = t.btnYes;
 
-      // تحديث نص شريط التثبيت إذا كان ظاهرًا
+      // نص شريط التثبيت لو ظاهر
       const banner = $('#installBanner');
       const btnInstall = $('#btnInstallApp');
       if(!banner.hidden){
         if(isIos()){
           $('#installText').textContent = t.installIosText;
-          btnInstall.textContent = t.installBtn;
         }else{
           $('#installText').textContent = t.installAndroidText;
-          btnInstall.textContent = t.installBtn;
         }
+        btnInstall.textContent = t.installBtn;
       }
 
       renderWeekdays();
@@ -1053,11 +1055,15 @@
     function wireCalendarNav(){
       $('#prevMonth').onclick=()=>{
         view=new Date(view.getFullYear(),view.getMonth()-1,1);
-        renderCalendar(); updateSummary();
+        renderCalendarTitle();
+        renderCalendar();
+        updateSummary();
       };
       $('#nextMonth').onclick=()=>{
         view=new Date(view.getFullYear(),view.getMonth()+1,1);
-        renderCalendar(); updateSummary();
+        renderCalendarTitle();
+        renderCalendar();
+        updateSummary();
       };
       $('#btnResetAll').onclick=async ()=>{
         const t=i18n[store.lang]||i18n.en;
@@ -1113,6 +1119,8 @@
 
       btnClose.onclick = () => {
         banner.hidden = true;
+        installDismissed = true;
+        localStorage.setItem('installDismissed','1');
       };
 
       btnInstall.onclick = async () => {
@@ -1124,6 +1132,8 @@
           }catch(_){}
           deferredPrompt = null;
           banner.hidden = true;
+          installDismissed = true;
+          localStorage.setItem('installDismissed','1');
         }else{
           if(isIos()){
             showToast(t.installIosText,'info');
@@ -1131,7 +1141,8 @@
         }
       };
 
-      if(isMobile() && isIos() && !isStandalone()){
+      // iOS: إظهار نص الشرح فقط (لا يوجد beforeinstallprompt)
+      if(isMobile() && isIos() && !isStandalone() && !installDismissed){
         const t=i18n[store.lang]||i18n.en;
         $('#installText').textContent = t.installIosText;
         btnInstall.textContent = t.installBtn;
@@ -1216,6 +1227,7 @@
         }
       }catch(e){
         console.log('load user error',e);
+        showToast('Cloud sync error (Firestore Rules?)','error');
       }
 
       updateAccountCodeUI();
@@ -1278,6 +1290,7 @@
             }
           }catch(e){
             console.log('login error',e);
+            showToast('Cloud error on login','error');
           }
         }
 
@@ -1285,6 +1298,11 @@
         closeLoginModal();
         loadUserDataFromFirestore();
       };
+
+      $('#loginClose').onclick = closeLoginModal;
+      $('#loginBg').addEventListener('click', e=>{
+        if(e.target.id === 'loginBg') closeLoginModal();
+      });
     }
 
     function wireAccountButtons(){
@@ -1297,7 +1315,7 @@
           return;
         }
         showToast(
-          (t.loginCodeMsg || 'Your login code:') + ' ' + userCode,
+          (t.switchDeviceHint || 'Use this code on your new device:') + ' ' + userCode,
           'success'
         );
       };
@@ -1333,6 +1351,16 @@
         if(confirmResolver) confirmResolver(true);
         closeConfirm();
       };
+      $('#confirmClose').onclick=()=>{
+        if(confirmResolver) confirmResolver(false);
+        closeConfirm();
+      };
+      $('#confirmBg').addEventListener('click', e=>{
+        if(e.target.id==='confirmBg'){
+          if(confirmResolver) confirmResolver(false);
+          closeConfirm();
+        }
+      });
 
       wireLang();
       initSetup();
@@ -1350,7 +1378,7 @@
     });
 
     window.addEventListener('beforeinstallprompt', (e)=>{
-      if(!isMobile() || isIos() || isStandalone()) return;
+      if(!isMobile() || isIos() || isStandalone() || installDismissed) return;
       e.preventDefault();
       deferredPrompt = e;
       const t = i18n[store.lang]||i18n.en;
