@@ -1,8 +1,5 @@
 <!DOCTYPE html>
-<!--
-  KeFo Work Hours – PWA
-  حساب ساعات العمل مع تقويم + PDF أفقي منظم + 3 لغات + PWA + Firebase + Login KeFo + Sync
--->
+<!-- KeFo Work Hours – PWA + Firebase + Login + Sync + Switch Device + Install Banner i18n -->
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
@@ -64,6 +61,12 @@
       display:flex;gap:6px;align-items:center;min-height:32px
     }
     .chip b{color:#fff}
+    .chip-visitors{
+  background:rgba(34,197,94,0.18);   /* خلفية خضراء شفافة */
+  border-color:rgba(34,197,94,0.7);  /* إطار أخضر أوضح */
+  color:#bbf7d0;                     /* نص أخضر فاتح */
+}
+
 
     .btn{
       appearance:none;border:0;background:var(--panel-2);color:var(--text);
@@ -175,16 +178,11 @@
       line-height:1.5;
     }
 
-    /* إخفاء شريط التثبيت داخل التطبيق PWA */
-    @media (display-mode: standalone), (display-mode: fullscreen){
-      #installBanner{display:none !important;}
-    }
-
     /* الطباعة: صفحة أفقية + جدول فقط */
     @media print{
       @page { size: A4 landscape; margin: 10mm; }
       body{background:#fff;color:#000;font-size:11px}
-      header, footer, #setup, #calendar, #installBanner, #loginBg, #confirmBg, #newCodeBg{display:none !important}
+      header, footer, #setup, #calendar, #installBanner, #loginBg, #confirmBg, #switchBg{display:none !important}
       #printArea{display:block !important}
     }
 
@@ -202,7 +200,10 @@
       <div class="summary">
         <div class="chip"><span id="lblMonthSum">Hours</span> : <b id="sum-month">0:00</b></div>
         <div class="chip"><span id="lblOT">OT</span> : <b id="sum-ot">0:00</b></div>
-        <div class="chip"><span id="lblVisitors">Visitors (24h)</span> : <b id="visitors24h">0</b></div>
+        <div class="chip chip-visitors">
+  <span id="lblVisitors">Visitors (24h)</span> :
+  <b id="visitors24h">0</b>
+</div>
         <div class="chip" style="gap:6px">
           <span id="lblLang">Language</span> :
           <select id="langSwitcher" class="btn">
@@ -351,7 +352,7 @@
     </div>
   </div>
 
-  <!-- مودال تأكيد (Reset وغيره) -->
+  <!-- مودال تأكيد (Reset) -->
   <div class="modal-backdrop" id="confirmBg" role="alertdialog" aria-modal="true">
     <div class="modal">
       <header class="wrap" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
@@ -368,24 +369,25 @@
     </div>
   </div>
 
-  <!-- مودال عرض كود KeFo الجديد -->
-  <div class="modal-backdrop" id="newCodeBg" role="dialog" aria-modal="true">
+  <!-- مودال تبديل الجهاز -->
+  <div class="modal-backdrop" id="switchBg" role="dialog" aria-modal="true">
     <div class="modal">
       <header class="wrap" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
-        <div style="font-weight:800" id="newCodeTitle">كود حسابك الجديد</div>
-        <button class="btn" id="newCodeClose">✖</button>
+        <div style="font-weight:800" id="switchTitle">تبديل الجهاز</div>
+        <button class="btn" id="switchClose">✖</button>
       </header>
       <div class="content">
-        <p id="newCodeDesc" class="hint">
-          احتفظ بهذا الكود، ستحتاجه عند تبديل الجهاز أو فتح حسابك من جهاز جديد.
-        </p>
         <div class="q">
-          <input id="newCodeInput" type="text" disabled
-                 style="font-size:1.2rem;text-align:center;font-weight:bold;letter-spacing:1px" />
+          <label id="switchCurrentLabel">رقم حسابك الحالي</label>
+          <input id="switchCurrentCode" type="text" disabled />
         </div>
-      </div>
-      <div class="footer" style="justify-content:flex-end;gap:10px">
-        <button class="btn btn-primary" id="newCodeOk">حسناً</button>
+        <div class="q">
+          <label id="switchNewLabel">إدخال حساب جديد</label>
+          <input id="switchNewInput" type="text" placeholder="KeFo123456" />
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
+          <button class="btn btn-primary" id="switchApply">تأكيد</button>
+        </div>
       </div>
     </div>
   </div>
@@ -461,6 +463,11 @@
         switchDevice:'Gerät wechseln',
         switchDeviceHint:'Nutze diesen Code auf deinem neuen Gerät, um deine Daten zu laden.',
 
+        switchTitle:'Gerät wechseln',
+        switchCurrentLabel:'Dein aktueller Code',
+        switchNewLabel:'Neuen Code eingeben',
+        switchApply:'Bestätigen',
+
         resetConfirmTitle:'Zurücksetzen bestätigen',
         resetConfirmText:'Möchtest du wirklich alle Daten auf diesem Gerät löschen? Dies kann nicht rückgängig gemacht werden.',
         btnYes:'Ja, alles löschen',
@@ -529,6 +536,11 @@
         myAccountHint:'Keep this number. Enter it on any new device to load your data.',
         switchDevice:'Switch device',
         switchDeviceHint:'Use this code on your new device to load your data.',
+
+        switchTitle:'Switch device',
+        switchCurrentLabel:'Your current code',
+        switchNewLabel:'Enter new code',
+        switchApply:'Apply',
 
         resetConfirmTitle:'Confirm reset',
         resetConfirmText:'Do you really want to clear all data on this device? This cannot be undone.',
@@ -599,6 +611,11 @@
         switchDevice:'تبديل الجهاز',
         switchDeviceHint:'استخدم هذا الرقم على جهازك الجديد لتحميل جميع بياناتك.',
 
+        switchTitle:'تبديل الجهاز',
+        switchCurrentLabel:'رقم حسابك الحالي',
+        switchNewLabel:'إدخال حساب جديد',
+        switchApply:'تأكيد',
+
         resetConfirmTitle:'تأكيد التصفير',
         resetConfirmText:'هل تريد بالتأكيد مسح جميع البيانات من هذا الجهاز؟ هذا الإجراء لا يمكن التراجع عنه.',
         btnYes:'نعم، مسح الكل',
@@ -624,7 +641,7 @@
     let view=new Date();
     let activeKey=null;
     let db=null;
-    let userCode=null;
+    let userCode=localStorage.getItem('userCode')||null;
     let deferredPrompt=null;
     let confirmResolver=null;
     let installDismissed = localStorage.getItem('installDismissed') === '1';
@@ -652,20 +669,9 @@
       $('#confirmTitle').textContent=t.resetConfirmTitle;
       $('#confirmMessage').textContent=message;
       $('#confirmBg').style.display='flex';
-      $('#confirmNo').style.display='inline-flex';
-      $('#confirmYes').textContent=t.btnYes;
       return new Promise(res=>{
         confirmResolver=res;
       });
-    }
-    function showAlert(message){
-      const t=i18n[store.lang]||i18n.en;
-      $('#confirmTitle').textContent=t.appTitle;
-      $('#confirmMessage').textContent=message;
-      $('#confirmBg').style.display='flex';
-      $('#confirmNo').style.display='none';
-      $('#confirmYes').textContent='OK';
-      confirmResolver=null;
     }
     function closeConfirm(){
       $('#confirmBg').style.display='none';
@@ -676,6 +682,16 @@
       const input = $('#myAccountCode');
       if(!input) return;
       input.value = userCode ? userCode : '—';
+    }
+
+    function updateInstallTexts(){
+      const t=i18n[store.lang]||i18n.en;
+      if(isIos()){
+        $('#installText').textContent = t.installIosText;
+      }else{
+        $('#installText').textContent = t.installAndroidText;
+      }
+      $('#btnInstallApp').textContent = t.installBtn;
     }
 
     function applyLang(){
@@ -734,16 +750,12 @@
       $('#confirmNo').textContent = t.btnNo;
       $('#confirmYes').textContent = t.btnYes;
 
-      const banner = $('#installBanner');
-      const btnInstall = $('#btnInstallApp');
-      if(!banner.hidden){
-        if(isIos()){
-          $('#installText').textContent = t.installIosText;
-        }else{
-          $('#installText').textContent = t.installAndroidText;
-        }
-        btnInstall.textContent = t.installBtn;
-      }
+      $('#switchTitle').textContent = t.switchTitle;
+      $('#switchCurrentLabel').textContent = t.switchCurrentLabel;
+      $('#switchNewLabel').textContent = t.switchNewLabel;
+      $('#switchApply').textContent = t.switchApply;
+
+      updateInstallTexts();
 
       renderWeekdays();
       renderCalendarTitle();
@@ -878,7 +890,7 @@
         const end  =$('#inEnd').value;
         const brk  =$('#inBreak').value||0;
         if(!start||!end){
-          showAlert(t.errTimes);
+          alert(t.errTimes);
           return;
         }
         const worked=computeWorked(start,end,brk);
@@ -987,7 +999,7 @@
         const val=parseFloat(input.value);
         const t=i18n[store.lang]||i18n.en;
         if(!val||val<=0||val>24){
-          showAlert(t.errHours);
+          alert(t.errHours);
           return;
         }
         store.hours=val;
@@ -1108,8 +1120,6 @@
         return;
       }
 
-      const t=i18n[store.lang]||i18n.en;
-
       btnClose.onclick = () => {
         banner.hidden = true;
         installDismissed = true;
@@ -1130,18 +1140,19 @@
           localStorage.setItem('appInstalled','1');
         }else{
           if(isIos()){
-            showAlert(t.installIosText);
+            const t=i18n[store.lang]||i18n.en;
+            alert(t.installIosText);
           }
         }
       };
 
       if(isMobile() && isIos() && !isStandalone() && !installDismissed){
-        $('#installText').textContent = t.installIosText;
-        btnInstall.textContent = t.installBtn;
+        updateInstallTexts();
         banner.hidden = false;
       }
     }
 
+    // Service Worker
     if('serviceWorker' in navigator){
       window.addEventListener('load',()=>{
         navigator.serviceWorker.register('./sw.js').catch(err=>console.log('SW failed',err));
@@ -1218,7 +1229,7 @@
         }
       }catch(e){
         console.log('load user error',e);
-        showAlert('Cloud sync error (Firestore Rules?)');
+        alert('Cloud sync error (Firestore Rules?)');
       }
 
       updateAccountCodeUI();
@@ -1254,10 +1265,7 @@
           }catch(e){console.log('create user error',e);}
         }
 
-        // عرض الكود في المودال الجميل بدل alert
-        $('#newCodeInput').value = code;
-        $('#newCodeBg').style.display = 'flex';
-
+        alert((t.loginCodeMsg||'Your login code:') + ' ' + code);
         closeLoginModal();
         loadUserDataFromFirestore();
       };
@@ -1266,7 +1274,7 @@
         const t=i18n[store.lang]||i18n.en;
         const code = $('#loginCodeInput').value.trim();
         if(!code){
-          showAlert(t.loginEmpty || 'Please enter your code.');
+          alert(t.loginEmpty || 'Please enter your code.');
           return;
         }
         userCode = code;
@@ -1276,7 +1284,7 @@
           try{
             const snap = await db.collection('users').doc(code).get();
             if(!snap.exists){
-              showAlert(t.loginNotFound || 'Code not found.');
+              alert(t.loginNotFound || 'Code not found.');
               localStorage.removeItem('userCode');
               userCode=null;
               updateAccountCodeUI();
@@ -1284,7 +1292,7 @@
             }
           }catch(e){
             console.log('login error',e);
-            showAlert('Cloud error on login');
+            alert('Cloud error on login');
           }
         }
 
@@ -1299,16 +1307,52 @@
       });
     }
 
+    function openSwitchModal(){
+      $('#switchCurrentCode').value = userCode || '—';
+      $('#switchNewInput').value = '';
+      $('#switchBg').style.display='flex';
+    }
+    function closeSwitchModal(){
+      $('#switchBg').style.display='none';
+    }
+    function wireSwitchModal(){
+      $('#switchClose').onclick = closeSwitchModal;
+      $('#switchBg').addEventListener('click', e=>{
+        if(e.target.id==='switchBg') closeSwitchModal();
+      });
+      $('#switchApply').onclick = async ()=>{
+        const t=i18n[store.lang]||i18n.en;
+        const code = $('#switchNewInput').value.trim();
+        if(!code){
+          alert(t.loginEmpty || 'Please enter your code.');
+          return;
+        }
+        if(!db){
+          alert('Cloud error');
+          return;
+        }
+        try{
+          const snap = await db.collection('users').doc(code).get();
+          if(!snap.exists){
+            alert(t.loginNotFound || 'Code not found.');
+            return;
+          }
+          userCode = code;
+          localStorage.setItem('userCode', code);
+          updateAccountCodeUI();
+          await loadUserDataFromFirestore();
+          closeSwitchModal();
+        }catch(e){
+          console.log('switch device error',e);
+          alert('Cloud error');
+        }
+      };
+    }
+
     function wireAccountButtons(){
       const btnSwitch = $('#btnSwitchDevice');
       btnSwitch.onclick = ()=>{
-        const t=i18n[store.lang]||i18n.en;
-        if(!userCode){
-          showAlert(t.loginEmpty || 'Please enter your code or create one first.');
-          openLoginModal();
-          return;
-        }
-        showAlert((t.switchDeviceHint || 'Use this code on your new device:') + '\n\n' + userCode);
+        openSwitchModal();
       };
     }
 
@@ -1332,7 +1376,6 @@
 
       if(!localStorage.getItem('lang')) store.lang=autoLang();
 
-      // مودال التأكيد
       $('#confirmNo').onclick=()=>{
         if(confirmResolver) confirmResolver(false);
         closeConfirm();
@@ -1350,14 +1393,6 @@
           if(confirmResolver) confirmResolver(false);
           closeConfirm();
         }
-      });
-
-      // مودال الكود الجديد
-      const closeNewCode = ()=>{ $('#newCodeBg').style.display='none'; };
-      $('#newCodeClose').onclick = closeNewCode;
-      $('#newCodeOk').onclick = closeNewCode;
-      $('#newCodeBg').addEventListener('click',e=>{
-        if(e.target.id==='newCodeBg') closeNewCode();
       });
 
       if(isStandalone()){
@@ -1378,6 +1413,8 @@
       setupInstallBanner();
       initFirebase();
       initLoginFlow();
+      wireAccountButtons();
+      wireSwitchModal();
       applyLang();
       refreshVisibility();
       renderCalendar(); updateSummary();
@@ -1387,12 +1424,8 @@
       if(!isMobile() || isIos() || isStandalone() || installDismissed || appInstalled) return;
       e.preventDefault();
       deferredPrompt = e;
-      const t = i18n[store.lang]||i18n.en;
       const banner = $('#installBanner');
-      const btnInstall = $('#btnInstallApp');
-
-      $('#installText').textContent = t.installAndroidText;
-      btnInstall.textContent = t.installBtn;
+      updateInstallTexts();
       banner.hidden = false;
     });
 
