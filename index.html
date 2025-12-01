@@ -1,4 +1,3 @@
-<!-- index.html – الجزء 1/3 -->
 <!DOCTYPE html>
 <!--
   KeFo Work Hours – PWA
@@ -185,14 +184,13 @@
     @media print{
       @page { size: A4 landscape; margin: 10mm; }
       body{background:#fff;color:#000;font-size:11px}
-      header, footer, #setup, #calendar, #installBanner, #loginBg, #confirmBg{display:none !important}
+      header, footer, #setup, #calendar, #installBanner, #loginBg, #confirmBg, #newCodeBg{display:none !important}
       #printArea{display:block !important}
     }
 
     footer{margin:24px auto;max-width:1100px;padding:0 16px 24px;color:var(--muted);text-align:center}
   </style>
 </head>
-<!-- index.html – الجزء 2/3 -->
 <body>
   <header>
     <div class="wrap topbar">
@@ -353,7 +351,7 @@
     </div>
   </div>
 
-  <!-- مودال تأكيد (Reset) -->
+  <!-- مودال تأكيد (Reset وغيره) -->
   <div class="modal-backdrop" id="confirmBg" role="alertdialog" aria-modal="true">
     <div class="modal">
       <header class="wrap" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
@@ -369,7 +367,30 @@
       </div>
     </div>
   </div>
-    <!-- Firebase SDK (Compat) -->
+
+  <!-- مودال عرض كود KeFo الجديد -->
+  <div class="modal-backdrop" id="newCodeBg" role="dialog" aria-modal="true">
+    <div class="modal">
+      <header class="wrap" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-weight:800" id="newCodeTitle">كود حسابك الجديد</div>
+        <button class="btn" id="newCodeClose">✖</button>
+      </header>
+      <div class="content">
+        <p id="newCodeDesc" class="hint">
+          احتفظ بهذا الكود، ستحتاجه عند تبديل الجهاز أو فتح حسابك من جهاز جديد.
+        </p>
+        <div class="q">
+          <input id="newCodeInput" type="text" disabled
+                 style="font-size:1.2rem;text-align:center;font-weight:bold;letter-spacing:1px" />
+        </div>
+      </div>
+      <div class="footer" style="justify-content:flex-end;gap:10px">
+        <button class="btn btn-primary" id="newCodeOk">حسناً</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
@@ -377,11 +398,6 @@
     /* ========= ترجمة النصوص (3 لغات) ========= */
     const i18n = {
       de:{
-        installAndroidText:'Installiere die App, um alle Funktionen nutzen zu können.',
-        installIosText:'Um die App zu installieren: Safari öffnen → Teilen → „Zum Home-Bildschirm hinzufügen“.',
-        installBtn:'App installieren',
-        rights:'Alle Rechte vorbehalten',
-
         appTitle:'Arbeitszeitrechner',
         monthSum:'Stunden dieses Monats',
         overtime:'Überstunden',
@@ -391,7 +407,6 @@
         reset:'Zurücksetzen',
         print:'PDF-Bericht',
         about:'Über uns',
-        switchDevice:'Gerät wechseln',
 
         setupTitle:'Schnelle Einrichtung',
         qOfficial:'Offizielle tägliche Arbeitszeit (Stunden)',
@@ -401,8 +416,8 @@
 
         weekdays:['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'],
 
-        start:'Startzeit',
-        end:'Endzeit',
+        start:'Arbeitsbeginn',
+        end:'Arbeitsende',
         break:'Pause (Minuten)',
         total:'Tagessumme',
 
@@ -410,6 +425,9 @@
         now:'Jetzt',
         save:'Speichern',
         noData:'—',
+
+        errHours:'Bitte eine Zahl zwischen 1 und 24 eingeben.',
+        errTimes:'Bitte Beginn und Ende eingeben.',
 
         reportTitle:'Monatsbericht',
         thStartDate:'Startdatum',
@@ -422,60 +440,63 @@
         thOT:'Überstunden',
         thTotal:'Gesamt',
 
+        installAndroidText:'Installiere die App, um alle Funktionen nutzen zu können.',
+        installIosText:'Um die App zu installieren: Öffne diese Seite in Safari, tippe auf das Teilen-Symbol und wähle „Zum Home-Bildschirm hinzufügen“.',
+        installBtn:'App installieren',
+
+        rights:'Alle Rechte vorbehalten',
+
         loginTitle:'Anmeldung',
-        loginDesc:'Mit KeFo-Code anmelden oder neuen Code erstellen.',
+        loginDesc:'Melde dich mit deinem KeFo-Code an oder erstelle einen neuen Code, um deine Arbeitszeiten auf allen Geräten zu synchronisieren.',
         loginCodeLabel:'KeFo-Anmeldecode',
-        loginHint:'Code gut aufbewahren.',
+        loginHint:'Bewahre diesen Code sicher auf. Du brauchst ihn, wenn du das Gerät wechselst.',
         loginCreate:'Neuen Code erstellen',
         loginBtn:'Mit Code anmelden',
-        loginCodeMsg:'Dein Login-Code:',
-        loginEmpty:'Bitte Code eingeben.',
-        loginNotFound:'Code nicht gefunden.',
+        loginCodeMsg:'Dein Anmeldecode:',
+        loginEmpty:'Bitte gib deinen Code ein.',
+        loginNotFound:'Code nicht gefunden. Bitte überprüfe ihn oder erstelle einen neuen.',
 
-        myAccountLabel:'Meine KeFo-Kontonummer',
-        myAccountHint:'Diesen Code auf neuem Gerät eingeben.',
+        myAccountLabel:'Meine persönliche Kontonummer (KeFo-Code)',
+        myAccountHint:'Bewahre diese Nummer auf. Du kannst sie auf einem anderen Gerät eingeben, um deine Daten zu laden.',
+        switchDevice:'Gerät wechseln',
         switchDeviceHint:'Nutze diesen Code auf deinem neuen Gerät, um deine Daten zu laden.',
 
         resetConfirmTitle:'Zurücksetzen bestätigen',
-        resetConfirmText:'Alle Daten löschen?',
-        btnYes:'Ja',
-        btnNo:'Nein'
+        resetConfirmText:'Möchtest du wirklich alle Daten auf diesem Gerät löschen? Dies kann nicht rückgängig gemacht werden.',
+        btnYes:'Ja, alles löschen',
+        btnNo:'Abbrechen'
       },
-
       en:{
-        installAndroidText:'We recommend installing the app to use all features.',
-        installIosText:'To install: open this site in Safari → Share → Add to Home Screen.',
-        installBtn:'Install app',
-        rights:'All rights reserved',
-
         appTitle:'Work Hours Calculator',
         monthSum:'Hours this month',
         overtime:'Overtime',
-        visitors24:'Visitors (24h)',
+        visitors24:'Visitors (last 24h)',
         language:'Language',
         settings:'Settings',
         reset:'Reset',
         print:'PDF Report',
         about:'About us',
-        switchDevice:'Switch device',
 
         setupTitle:'Quick setup',
         qOfficial:'Official daily work hours',
-        hintOfficial:'This value will be saved.',
+        hintOfficial:'This value will be saved permanently.',
         skip:'Skip',
         next:'Next',
 
         weekdays:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
 
-        start:'Start',
-        end:'End',
-        break:'Break (min)',
-        total:'Total',
+        start:'Start time',
+        end:'End time',
+        break:'Break (minutes)',
+        total:'Day total',
 
         deleteDay:'Delete day',
         now:'Now',
         save:'Save',
         noData:'—',
+
+        errHours:'Please enter a value between 1 and 24.',
+        errTimes:'Please enter start and end times.',
 
         reportTitle:'Monthly report',
         thStartDate:'Start date',
@@ -483,38 +504,39 @@
         thEndDate:'End date',
         thEndTime:'End time',
         thDuration:'Duration',
-        thWorked:'Worked',
+        thWorked:'Work time',
         thBreak:'Break',
         thOT:'Overtime',
         thTotal:'Total',
 
-        loginTitle:'Login',
-        loginDesc:'Enter your KeFo Code or create a new one.',
+        installAndroidText:'We recommend installing the app to use all available features.',
+        installIosText:'To install on iPhone: open this site in Safari, tap the Share button, then choose “Add to Home Screen”.',
+        installBtn:'Install app',
+
+        rights:'All rights reserved',
+
+        loginTitle:'Sign in',
+        loginDesc:'Sign in with your KeFo code, or create a new one to sync your working hours across all devices.',
         loginCodeLabel:'KeFo login code',
-        loginHint:'Keep your code safe.',
+        loginHint:'Keep this code in a safe place. You will need it when you change device.',
         loginCreate:'Create new code',
-        loginBtn:'Login',
+        loginBtn:'Sign in with code',
         loginCodeMsg:'Your login code:',
         loginEmpty:'Please enter your code.',
-        loginNotFound:'Code not found.',
+        loginNotFound:'Code not found. Please check it or create a new one.',
 
-        myAccountLabel:'My KeFo account number',
-        myAccountHint:'Use this code on your new device.',
+        myAccountLabel:'My personal account number (KeFo code)',
+        myAccountHint:'Keep this number. Enter it on any new device to load your data.',
+        switchDevice:'Switch device',
         switchDeviceHint:'Use this code on your new device to load your data.',
 
         resetConfirmTitle:'Confirm reset',
-        resetConfirmText:'Delete all data?',
-        btnYes:'Yes',
+        resetConfirmText:'Do you really want to clear all data on this device? This cannot be undone.',
+        btnYes:'Yes, clear all',
         btnNo:'Cancel'
       },
-
       ar:{
-        installAndroidText:'ننصحك بتثبيت التطبيق للحصول على جميع الميزات.',
-        installIosText:'لتثبيت التطبيق: افتح الموقع في Safari → مشاركة → إضافة للشاشة الرئيسية.',
-        installBtn:'تثبيت التطبيق',
-        rights:'جميع الحقوق محفوظة',
-
-        appTitle:'حاسب ساعات العمل',
+        appTitle:'حاسِب ساعات العمل',
         monthSum:'ساعات هذا الشهر',
         overtime:'العمل الإضافي',
         visitors24:'الزائرون آخر ٢٤ ساعة',
@@ -523,90 +545,91 @@
         reset:'تصفير',
         print:'تقرير PDF',
         about:'من نحن',
-        switchDevice:'تبديل الجهاز',
 
         setupTitle:'إعداد سريع',
-        qOfficial:'عدد ساعات العمل اليومية الرسمية',
-        hintOfficial:'سيتم الحفظ تلقائيًا.',
+        qOfficial:'عدد ساعات العمل الرسمية يوميًا (بالساعات)',
+        hintOfficial:'سيتم حفظ هذا الإعداد ويمكن تغييره لاحقًا.',
         skip:'تخطي',
-        next:'حفظ',
+        next:'التالي',
 
         weekdays:['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'],
 
-        start:'بداية',
-        end:'نهاية',
-        break:'استراحة (دقائق)',
-        total:'المجموع',
+        start:'بداية الدوام',
+        end:'نهاية الدوام',
+        break:'مدة الاستراحة (بالدقائق)',
+        total:'المحصلة لليوم',
 
-        deleteDay:'حذف اليوم',
+        deleteDay:'حذف بيانات اليوم',
         now:'الآن',
         save:'حفظ',
         noData:'—',
+
+        errHours:'يرجى إدخال رقم بين 1 و 24',
+        errTimes:'يرجى إدخال وقت البداية والنهاية',
 
         reportTitle:'تقرير الشهر',
         thStartDate:'تاريخ البداية',
         thStartTime:'وقت البداية',
         thEndDate:'تاريخ النهاية',
         thEndTime:'وقت النهاية',
-        thDuration:'المدة',
+        thDuration:'المدة الكلية',
         thWorked:'ساعات العمل',
         thBreak:'الاستراحة',
-        thOT:'إضافي',
+        thOT:'العمل الإضافي',
         thTotal:'الإجمالي',
 
-        loginTitle:'تسجيل الدخول',
-        loginDesc:'أدخل كود KeFo الخاص بك أو أنشئ كود جديد.',
-        loginCodeLabel:'كود الدخول',
-        loginHint:'احتفظ بالكود في مكان آمن.',
-        loginCreate:'إنشاء كود جديد',
-        loginBtn:'تسجيل الدخول',
-        loginCodeMsg:'الكود الخاص بك:',
-        loginEmpty:'يرجى إدخال الكود.',
-        loginNotFound:'الكود غير موجود.',
+        installAndroidText:'ننصحك بتثبيت التطبيق لاستخدام جميع الميزات المتاحة.',
+        installIosText:'لتثبيت التطبيق على الآيفون: افتح الموقع في Safari، اضغط على زر المشاركة، ثم اختر "إضافة إلى الشاشة الرئيسية".',
+        installBtn:'تثبيت التطبيق',
 
-        myAccountLabel:'رقم حسابي KeFo',
-        myAccountHint:'استخدم هذا الكود على جهاز جديد.',
-        switchDeviceHint:'استخدم هذا الكود على جهازك الجديد لتحميل بياناتك.',
+        rights:'جميع الحقوق محفوظة',
+
+        loginTitle:'تسجيل الدخول',
+        loginDesc:'ادخل باستخدام كود KeFo الخاص بك، أو أنشئ كود جديد ليتم حفظ ساعات عملك على جميع الأجهزة.',
+        loginCodeLabel:'كود تسجيل الدخول KeFo',
+        loginHint:'احتفظ بهذا الكود في مكان آمن، ستحتاجه عند تغيير الهاتف أو الحاسوب.',
+        loginCreate:'إنشاء كود جديد',
+        loginBtn:'دخول بالكود',
+        loginCodeMsg:'كود تسجيل الدخول الخاص بك:',
+        loginEmpty:'يرجى إدخال كود تسجيل الدخول.',
+        loginNotFound:'لم يتم العثور على هذا الكود. تأكد منه أو أنشئ كودًا جديدًا.',
+
+        myAccountLabel:'رقم حسابي الشخصي (كود KeFo)',
+        myAccountHint:'احتفظ بهذا الرقم، يمكنك إدخاله على أي جهاز جديد لاسترجاع جميع بياناتك.',
+        switchDevice:'تبديل الجهاز',
+        switchDeviceHint:'استخدم هذا الرقم على جهازك الجديد لتحميل جميع بياناتك.',
 
         resetConfirmTitle:'تأكيد التصفير',
-        resetConfirmText:'هل تريد حذف جميع البيانات؟',
-        btnYes:'نعم',
+        resetConfirmText:'هل تريد بالتأكيد مسح جميع البيانات من هذا الجهاز؟ هذا الإجراء لا يمكن التراجع عنه.',
+        btnYes:'نعم، مسح الكل',
         btnNo:'إلغاء'
       }
     };
 
-    /* أدوات */
     const $  = s=>document.querySelector(s);
     const pad = n=>String(n).padStart(2,'0');
     const fmtHM = m=>{m=Math.max(0,Math.round(m||0));return `${Math.floor(m/60)}:${pad(m%60)}`};
     const toKey=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
 
-    /* LocalStorage */
     const store={
       get hours(){return parseFloat(localStorage.getItem('officialDailyHours')||'0')||0},
       set hours(v){localStorage.setItem('officialDailyHours',String(v))},
-
       get logs(){return JSON.parse(localStorage.getItem('workLogs')||'{}')},
       set logs(o){localStorage.setItem('workLogs',JSON.stringify(o))},
-
       get lang(){return localStorage.getItem('lang')||autoLang()},
       set lang(v){localStorage.setItem('lang',v)},
-
       reset(){localStorage.clear()}
     };
 
-    /* متغيرات عامة */
     let view=new Date();
     let activeKey=null;
     let db=null;
     let userCode=null;
     let deferredPrompt=null;
     let confirmResolver=null;
-
     let installDismissed = localStorage.getItem('installDismissed') === '1';
-    let appInstalled      = localStorage.getItem('appInstalled') === '1';
+    let appInstalled = localStorage.getItem('appInstalled') === '1';
 
-    /* Firebase */
     const firebaseConfig = {
       apiKey: "AIzaSyAMVnS-oDUU905EtHx-J8NTRNwW5xr3yMg",
       authDomain: "kefo-work-hours.firebaseapp.com",
@@ -620,174 +643,158 @@
       const nav=(navigator.language||'en').toLowerCase();
       if(nav.startsWith('ar')) return 'ar';
       if(nav.startsWith('de')) return 'de';
+      if(nav.startsWith('en')) return 'en';
       return 'en';
     }
 
-    /* ========= إظهار شريط التثبيت ========= */
-    function isIos(){ return /iphone|ipad|ipod/i.test(navigator.userAgent); }
-    function isMobile(){ return /android|iphone|ipad|ipod/i.test(navigator.userAgent); }
-    function isStandalone(){
-      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    function showConfirm(message){
+      const t=i18n[store.lang]||i18n.en;
+      $('#confirmTitle').textContent=t.resetConfirmTitle;
+      $('#confirmMessage').textContent=message;
+      $('#confirmBg').style.display='flex';
+      $('#confirmNo').style.display='inline-flex';
+      $('#confirmYes').textContent=t.btnYes;
+      return new Promise(res=>{
+        confirmResolver=res;
+      });
+    }
+    function showAlert(message){
+      const t=i18n[store.lang]||i18n.en;
+      $('#confirmTitle').textContent=t.appTitle;
+      $('#confirmMessage').textContent=message;
+      $('#confirmBg').style.display='flex';
+      $('#confirmNo').style.display='none';
+      $('#confirmYes').textContent='OK';
+      confirmResolver=null;
+    }
+    function closeConfirm(){
+      $('#confirmBg').style.display='none';
+      confirmResolver=null;
     }
 
-    function setupInstallBanner(){
-      const banner = $('#installBanner');
-
-      // لا تظهر داخل التطبيق أو إذا تم إخفاؤها سابقًا
-      if(isStandalone() || appInstalled || installDismissed){
-        banner.hidden = true;
-        return;
-      }
-
-      const t=i18n[store.lang];
-
-      if(isIos()){
-        $('#installText').textContent = t.installIosText;
-        $('#btnInstallApp').textContent = t.installBtn;
-        banner.hidden = false;
-      }
+    function updateAccountCodeUI(){
+      const input = $('#myAccountCode');
+      if(!input) return;
+      input.value = userCode ? userCode : '—';
     }
 
-    window.addEventListener('beforeinstallprompt', (e)=>{
-      if(!isMobile() || isIos() || isStandalone() || installDismissed || appInstalled) return;
-      e.preventDefault();
-      deferredPrompt = e;
-
-      const t=i18n[store.lang];
-      $('#installText').textContent = t.installAndroidText;
-      $('#btnInstallApp').textContent = t.installBtn;
-
-      $('#installBanner').hidden = false;
-    });
-
-    window.addEventListener('appinstalled', ()=>{
-      appInstalled = true;
-      installDismissed = true;
-      localStorage.setItem('appInstalled','1');
-      localStorage.setItem('installDismissed','1');
-      $('#installBanner').hidden = true;
-    });
-
-    /* زر تثبيت التطبيق */
-    document.addEventListener('click', e=>{
-      if(e.target.id === 'btnInstallClose'){
-        $('#installBanner').hidden = true;
-        installDismissed = true;
-        localStorage.setItem('installDismissed','1');
-      }
-      if(e.target.id === 'btnInstallApp'){
-        if(deferredPrompt){
-          deferredPrompt.prompt();
-        }
-      }
-    });
-
-    /* ========= ترجمات UI ========= */
     function applyLang(){
-      const t=i18n[store.lang];
+      const lang=store.lang;
+      const t=i18n[lang]||i18n.en;
+      document.documentElement.lang=lang;
+      document.documentElement.dir=(lang==='ar')?'rtl':'ltr';
 
-      document.documentElement.lang=store.lang;
-      document.documentElement.dir=store.lang==='ar'?'rtl':'ltr';
+      $('#appTitle').textContent=t.appTitle;
+      $('#lblMonthSum').textContent=t.monthSum;
+      $('#lblOT').textContent=t.overtime;
+      $('#lblVisitors').textContent=t.visitors24;
+      $('#lblLang').textContent=t.language;
+      $('#lblPrint').textContent=t.print;
+      $('#lblSettings').textContent=t.settings;
+      $('#lblReset').textContent=t.reset;
+      $('#lblAbout').textContent=t.about;
+      $('#lblSwitchDevice').textContent=t.switchDevice;
 
-      $('#appTitle').textContent     = t.appTitle;
-      $('#lblMonthSum').textContent  = t.monthSum;
-      $('#lblOT').textContent        = t.overtime;
-      $('#lblVisitors').textContent  = t.visitors24;
-      $('#lblLang').textContent      = t.language;
-      $('#lblPrint').textContent     = t.print;
-      $('#lblAbout').textContent     = t.about;
-      $('#lblSettings').textContent  = t.settings;
-      $('#lblReset').textContent     = t.reset;
-      $('#lblSwitchDevice').textContent = t.switchDevice;
+      $('#setupTitle').textContent=t.setupTitle;
+      $('#qOfficial').textContent=t.qOfficial;
+      $('#hintOfficial').textContent=t.hintOfficial;
+      $('#setupSkip').textContent=t.skip;
+      $('#setupSave').textContent=t.next;
 
-      $('#setupTitle').textContent   = t.setupTitle;
-      $('#qOfficial').textContent    = t.qOfficial;
-      $('#hintOfficial').textContent = t.hintOfficial;
-      $('#setupSkip').textContent    = t.skip;
-      $('#setupSave').textContent    = t.next;
+      $('#lblMyAccount').textContent=t.myAccountLabel;
+      $('#hintMyAccount').textContent=t.myAccountHint;
 
-      $('#lblMyAccount').textContent = t.myAccountLabel;
-      $('#hintMyAccount').textContent= t.myAccountHint;
+      $('#lblStart').textContent=t.start;
+      $('#lblEnd').textContent=t.end;
+      $('#lblBreak').textContent=t.break;
+      $('#lblTotal').textContent=t.total;
+      $('#lblDeleteDay').textContent=t.deleteDay;
+      $('#lblNow').textContent=t.now;
+      $('#lblSave').textContent=t.save;
 
-      $('#lblStart').textContent     = t.start;
-      $('#lblEnd').textContent       = t.end;
-      $('#lblBreak').textContent     = t.break;
-      $('#lblTotal').textContent     = t.total;
-      $('#lblDeleteDay').textContent = t.deleteDay;
-      $('#lblNow').textContent       = t.now;
-      $('#lblSave').textContent      = t.save;
+      $('#rights').textContent=t.rights;
 
-      $('#rights').textContent       = t.rights;
+      $('#thStartDate').textContent=t.thStartDate;
+      $('#thStartTime').textContent=t.thStartTime;
+      $('#thEndDate').textContent  =t.thEndDate;
+      $('#thEndTime').textContent  =t.thEndTime;
+      $('#thDuration').textContent =t.thDuration;
+      $('#thWorked').textContent   =t.thWorked;
+      $('#thBreak').textContent    =t.thBreak;
+      $('#thOT').textContent       =t.thOT;
+      $('#thTotal').textContent    =t.thTotal;
 
-      $('#thStartDate').textContent  = t.thStartDate;
-      $('#thStartTime').textContent  = t.thStartTime;
-      $('#thEndDate').textContent    = t.thEndDate;
-      $('#thEndTime').textContent    = t.thEndTime;
-      $('#thDuration').textContent   = t.thDuration;
-      $('#thWorked').textContent     = t.thWorked;
-      $('#thBreak').textContent      = t.thBreak;
-      $('#thOT').textContent         = t.thOT;
-      $('#thTotal').textContent      = t.thTotal;
+      $('#loginTitle').textContent = t.loginTitle;
+      $('#loginDesc').textContent = t.loginDesc;
+      $('#loginCodeLabel').textContent = t.loginCodeLabel;
+      $('#loginHint').textContent = t.loginHint;
+      $('#lblCreateUser').textContent = t.loginCreate;
+      $('#lblLogin').textContent = t.loginBtn;
 
-      $('#loginTitle').textContent   = t.loginTitle;
-      $('#loginDesc').textContent    = t.loginDesc;
-      $('#loginCodeLabel').textContent= t.loginCodeLabel;
-      $('#loginHint').textContent    = t.loginHint;
-      $('#lblCreateUser').textContent= t.loginCreate;
-      $('#lblLogin').textContent= t.loginBtn;
+      $('#confirmNo').textContent = t.btnNo;
+      $('#confirmYes').textContent = t.btnYes;
+
+      const banner = $('#installBanner');
+      const btnInstall = $('#btnInstallApp');
+      if(!banner.hidden){
+        if(isIos()){
+          $('#installText').textContent = t.installIosText;
+        }else{
+          $('#installText').textContent = t.installAndroidText;
+        }
+        btnInstall.textContent = t.installBtn;
+      }
 
       renderWeekdays();
       renderCalendarTitle();
       renderCalendar();
+      updateSummary();
     }
 
-    /* التقويم */
     function renderWeekdays(){
-      const t=i18n[store.lang];
+      const t=i18n[store.lang]||i18n.en;
       const dow=$('#dow'); dow.innerHTML='';
-      for(const w of t.weekdays){
+      for(const name of t.weekdays){
         const el=document.createElement('div');
         el.className='dow';
-        el.textContent=w;
+        el.textContent=name;
         dow.appendChild(el);
       }
     }
+
     function renderCalendarTitle(){
+      const lang=store.lang;
       $('#calTitle').textContent=
-        new Intl.DateTimeFormat(store.lang,{month:'long',year:'numeric'}).format(view);
+        new Intl.DateTimeFormat(lang,{month:'long',year:'numeric'}).format(view);
     }
+
     function renderCalendar(){
       const y=view.getFullYear(), m=view.getMonth();
       const first=new Date(y,m,1), last=new Date(y,m+1,0);
       const firstDow=(first.getDay()+6)%7;
       const daysEl=$('#days'); daysEl.innerHTML='';
-
-      const logs=store.logs;
-
       for(let i=0;i<firstDow;i++){
         const cell=document.createElement('div');
         cell.className='day disabled';
         daysEl.appendChild(cell);
       }
-
+      const logs=store.logs;
       for(let d=1; d<=last.getDate(); d++){
         const key=toKey(y,m,d);
         const cell=document.createElement('div');
         cell.className='day';
 
         const num=document.createElement('div');
-        num.className='dnum';
-        num.textContent=d;
+        num.className='dnum'; num.textContent=d;
         cell.appendChild(num);
 
         const badge=document.createElement('div');
         badge.className='badge';
-        badge.textContent=logs[key]?fmtHM(logs[key].worked):(i18n[store.lang]).noData;
+        badge.textContent=logs[key]?fmtHM(logs[key].worked):(i18n[store.lang]||i18n.en).noData;
         cell.appendChild(badge);
 
         const btn=document.createElement('button');
-        btn.className='edit';
-        btn.textContent='✎';
+        btn.className='edit'; btn.textContent='✎';
         btn.onclick=()=>openDayModal(key);
         cell.appendChild(btn);
 
@@ -798,7 +805,6 @@
     function updateSummary(){
       const y=view.getFullYear(), m=view.getMonth();
       const logs=store.logs; let total=0, ot=0;
-
       for(const k in logs){
         const [yy,mm]=k.split('-').map(Number);
         if(yy===y && mm===m+1){
@@ -811,21 +817,20 @@
       $('#sum-ot').textContent   =fmtHM(ot);
     }
 
-    /* مودال اليوم */
     function openDayModal(key){
       activeKey=key;
-      const log=store.logs[key]||{};
+      const log=store.logs[key];
       const dt=new Date(key);
+      const lang=store.lang;
       $('#modalTitle').textContent=
-        new Intl.DateTimeFormat(store.lang,{weekday:'long',day:'numeric',month:'long'}).format(dt);
-
-      $('#inStart').value=log.start||'';
-      $('#inEnd').value  =log.end||'';
-      $('#inBreak').value=log.break||'';
-      $('#inResult').value=log.worked?fmtHM(log.worked):'0:00';
+        new Intl.DateTimeFormat(lang,{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(dt);
+      $('#inStart').value=log?.start||'';
+      $('#inEnd').value  =log?.end  ||'';
+      $('#inBreak').value=log?.break??'';
+      $('#inResult').value=log?fmtHM(log.worked):'0:00';
       $('#modalBg').style.display='flex';
     }
-    function closeModal(){ $('#modalBg').style.display='none'; }
+    function closeModal(){ $('#modalBg').style.display='none'; activeKey=null; }
 
     function computeDuration(start,end){
       if(!start||!end) return 0;
@@ -839,305 +844,566 @@
       return Math.max(0, computeDuration(start,end) - (parseInt(brk)||0));
     }
 
-    /* مزامنة Firebase */
     async function syncLocalLogsToFirestore(){
       if(!db || !userCode) return;
       const logs = store.logs;
       const userRef = db.collection('users').doc(userCode);
       const batch = db.batch();
-
       for(const key in logs){
-        batch.set(
-          userRef.collection('logs').doc(key),
-          logs[key],
-          {merge:true}
-        );
+        const logData = logs[key];
+        const docRef = userRef.collection('logs').doc(key);
+        batch.set(docRef, logData, {merge:true});
       }
-      await batch.commit();
+      try{
+        await batch.commit();
+      }catch(e){
+        console.log('sync logs error',e);
+      }
     }
 
-    /* بناء تقرير PDF */
-    function buildReport(){
-      const y=view.getFullYear(), m=view.getMonth();
-      const t=i18n[store.lang];
+    function wireModal(){
+      const recalc=()=>{
+        $('#inResult').value = fmtHM(
+          computeWorked($('#inStart').value,$('#inEnd').value,$('#inBreak').value)
+        );
+      };
+      $('#inStart').addEventListener('input',recalc);
+      $('#inEnd').addEventListener('input',recalc);
+      $('#inBreak').addEventListener('input',recalc);
 
+      $('#btnSaveDay').onclick=async ()=>{
+        if(!activeKey) return;
+        const t=i18n[store.lang]||i18n.en;
+        const start=$('#inStart').value;
+        const end  =$('#inEnd').value;
+        const brk  =$('#inBreak').value||0;
+        if(!start||!end){
+          showAlert(t.errTimes);
+          return;
+        }
+        const worked=computeWorked(start,end,brk);
+        const logs=store.logs;
+        logs[activeKey]={start,end,break:parseInt(brk)||0,worked};
+        store.logs=logs;
+
+        if(db && userCode){
+          try{
+            const userRef = db.collection('users').doc(userCode);
+            await userRef.collection('logs').doc(activeKey).set(logs[activeKey]);
+          }catch(e){console.log('save log error',e);}
+        }
+
+        renderCalendar(); updateSummary(); closeModal();
+      };
+
+      $('#btnDeleteDay').onclick=async ()=>{
+        if(!activeKey) return;
+        const logs=store.logs;
+        delete logs[activeKey];
+        store.logs=logs;
+
+        if(db && userCode){
+          try{
+            const userRef = db.collection('users').doc(userCode);
+            await userRef.collection('logs').doc(activeKey).delete();
+          }catch(e){console.log('delete log error',e);}
+        }
+
+        renderCalendar(); updateSummary(); closeModal();
+      };
+
+      $('#modalClose').onclick=closeModal;
+      $('#modalBg').addEventListener('click',e=>{ if(e.target.id==='modalBg') closeModal(); });
+
+      $('#btnNow').onclick=()=>{
+        const now=new Date();
+        $('#inStart').value=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        $('#inEnd').value  =`${pad((now.getHours()+8)%24)}:${pad(now.getMinutes())}`;
+        $('#inBreak').value=30;
+        $('#inResult').value=fmtHM(
+          computeWorked($('#inStart').value,$('#inEnd').value,$('#inBreak').value)
+        );
+      };
+    }
+
+    function buildReport(){
+      const t=i18n[store.lang]||i18n.en;
+      const y=view.getFullYear(), m=view.getMonth();
       $('#reportTitle').textContent=
         `${t.reportTitle} – ${new Intl.DateTimeFormat(store.lang,{month:'long',year:'numeric'}).format(view)}`;
+      $('#year').textContent=y;
 
       const body=$('#reportBody'); body.innerHTML='';
+      const last=new Date(y,m+1,0);
       const logs=store.logs;
 
-      const last=new Date(y,m+1,0);
-
-      let sumW=0,sumOT=0,sumBr=0;
+      let sumW=0, sumOT=0, sumBreak=0;
 
       for(let d=1; d<=last.getDate(); d++){
         const key=toKey(y,m,d);
         const log=logs[key];
         if(!log) continue;
 
-        const dateStr=new Intl.DateTimeFormat(store.lang,{
-          day:'2-digit',month:'2-digit',year:'numeric'
-        }).format(new Date(y,m,d));
+        const dateStr=new Intl.DateTimeFormat(store.lang,{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m,d));
+        const durationMins=computeDuration(log.start,log.end);
+        const workedMins  =log.worked||0;
+        const breakMins   =log.break||0;
+        const otMins      =Math.max(0, workedMins - store.hours*60);
 
-        const dur=computeDuration(log.start,log.end);
-        const w=log.worked||0;
-        const br=log.break||0;
-        const ot=Math.max(0, w - store.hours*60);
-
-        sumW+=w; sumOT+=ot; sumBr+=br;
+        sumW     += workedMins;
+        sumOT    += otMins;
+        sumBreak += breakMins;
 
         const tr=document.createElement('tr');
         tr.innerHTML=`
-          <td>${dateStr}</td>
-          <td>${log.start}</td>
-          <td>${dateStr}</td>
-          <td>${log.end}</td>
-          <td>${fmtHM(dur)}</td>
-          <td>${fmtHM(w)}</td>
-          <td>${fmtHM(br)}</td>
-          <td>${fmtHM(ot)}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${dateStr}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${log.start||''}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${dateStr}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${log.end||''}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(durationMins)}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(workedMins)}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(breakMins)}</td>
+          <td style="border:1px solid #777;padding:3px 4px;text-align:center">${fmtHM(otMins)}</td>
         `;
         body.appendChild(tr);
       }
 
       $('#tdSumWorked').textContent=fmtHM(sumW);
-      $('#tdSumBreak').textContent =fmtHM(sumBr);
+      $('#tdSumBreak').textContent =fmtHM(sumBreak);
       $('#tdSumOT').textContent    =fmtHM(sumOT);
     }
 
-    /* واجهة */
     function refreshVisibility(){
       const hasHours=store.hours>0;
       $('#setup').hidden  =hasHours;
       $('#calendar').hidden=!hasHours;
     }
 
-    /* واجهة الإعداد */
     function initSetup(){
       const input=$('#officialHours');
       if(store.hours>0) input.value=store.hours;
 
       $('#setupSave').onclick=async ()=>{
         const val=parseFloat(input.value);
+        const t=i18n[store.lang]||i18n.en;
         if(!val||val<=0||val>24){
-          alert('Invalid');
+          showAlert(t.errHours);
           return;
         }
         store.hours=val;
 
         if(db && userCode){
-          await db.collection('users').doc(userCode).set({
-            officialDailyHours:val
-          },{merge:true});
+          try{
+            await db.collection('users').doc(userCode).set({
+              officialDailyHours:val
+            },{merge:true});
+          }catch(e){console.log('update hours error',e);}
         }
 
         refreshVisibility(); renderCalendar(); updateSummary();
       };
-
       $('#setupSkip').onclick=async ()=>{
         store.hours=8;
-        refreshVisibility();renderCalendar();updateSummary();
-      };
 
+        if(db && userCode){
+          try{
+            await db.collection('users').doc(userCode).set({
+              officialDailyHours:8
+            },{merge:true});
+          }catch(e){console.log('update hours error',e);}
+        }
+
+        refreshVisibility(); renderCalendar(); updateSummary();
+      };
       $('#btnEditPolicy').onclick=()=>{
         $('#setup').hidden=false;
         $('#calendar').hidden=true;
       };
     }
 
-    /* اختيار اللغة */
     function wireLang(){
-      const s=$('#langSwitcher');
-      s.value=store.lang;
-      s.onchange=async ()=>{
-        store.lang=s.value;
+      const sel=$('#langSwitcher');
+      sel.value=store.lang;
+      sel.addEventListener('change',async ()=>{
+        store.lang=sel.value;
         applyLang();
+
         if(db && userCode){
-          await db.collection('users').doc(userCode).set({lang:store.lang},{merge:true});
+          try{
+            await db.collection('users').doc(userCode).set({
+              lang:store.lang
+            },{merge:true});
+          }catch(e){console.log('update lang error',e);}
         }
-      };
+      });
     }
 
-    /* أزرار التقويم */
     function wireCalendarNav(){
       $('#prevMonth').onclick=()=>{
         view=new Date(view.getFullYear(),view.getMonth()-1,1);
-        renderCalendarTitle(); renderCalendar(); updateSummary();
+        renderCalendarTitle();
+        renderCalendar();
+        updateSummary();
       };
       $('#nextMonth').onclick=()=>{
         view=new Date(view.getFullYear(),view.getMonth()+1,1);
-        renderCalendarTitle(); renderCalendar(); updateSummary();
+        renderCalendarTitle();
+        renderCalendar();
+        updateSummary();
       };
-
-      $('#btnResetAll').onclick=()=>{
-        const t=i18n[store.lang];
-        if(confirm(t.resetConfirmText)){
-          store.reset();
-          localStorage.removeItem('userCode');
+      $('#btnResetAll').onclick=async ()=>{
+        const t=i18n[store.lang]||i18n.en;
+        const ok = await showConfirm(t.resetConfirmText);
+        if(ok){
+          store.reset(); localStorage.removeItem('userCode');
           location.reload();
         }
       };
-
       $('#btnPrint').onclick=()=>{
         buildReport();
         window.print();
       };
     }
 
-    /* صفحة من نحن */
     function wireAbout(){
-      $('#btnAbout').onclick=()=>{ window.location.href="about.html"; };
+      $('#btnAbout').onclick=()=>{
+        window.location.href = 'about.html';
+      };
     }
 
-    /* حماية الموقع */
     function wireProtection(){
-      document.addEventListener('contextmenu',e=>e.preventDefault());
+      document.addEventListener('contextmenu', e => {
+        e.preventDefault();
+      });
 
-      let t;  
-      document.addEventListener('touchstart',e=>{
-        t=setTimeout(()=>e.preventDefault(),600);
-      },{passive:false});
-      document.addEventListener('touchend',()=>clearTimeout(t));
+      let touchTimer=null;
+      document.addEventListener('touchstart', e => {
+        touchTimer = setTimeout(() => {
+          e.preventDefault();
+        }, 600);
+      }, {passive:false});
+
+      document.addEventListener('touchend', () => {
+        if(touchTimer) clearTimeout(touchTimer);
+      });
     }
 
-    /* Firebase init + visits */
+    function isIos(){
+      return /iphone|ipad|ipod/i.test(navigator.userAgent);
+    }
+    function isMobile(){
+      return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    }
+    function isStandalone(){
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    function setupInstallBanner(){
+      const banner = $('#installBanner');
+      const btnInstall = $('#btnInstallApp');
+      const btnClose = $('#btnInstallClose');
+
+      if(isStandalone() || appInstalled || installDismissed){
+        banner.hidden = true;
+        return;
+      }
+
+      const t=i18n[store.lang]||i18n.en;
+
+      btnClose.onclick = () => {
+        banner.hidden = true;
+        installDismissed = true;
+        localStorage.setItem('installDismissed','1');
+      };
+
+      btnInstall.onclick = async () => {
+        if(deferredPrompt){
+          deferredPrompt.prompt();
+          try{
+            await deferredPrompt.userChoice;
+          }catch(_){}
+          deferredPrompt = null;
+          banner.hidden = true;
+          installDismissed = true;
+          appInstalled = true;
+          localStorage.setItem('installDismissed','1');
+          localStorage.setItem('appInstalled','1');
+        }else{
+          if(isIos()){
+            showAlert(t.installIosText);
+          }
+        }
+      };
+
+      if(isMobile() && isIos() && !isStandalone() && !installDismissed){
+        $('#installText').textContent = t.installIosText;
+        btnInstall.textContent = t.installBtn;
+        banner.hidden = false;
+      }
+    }
+
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('./sw.js').catch(err=>console.log('SW failed',err));
+      });
+    }
+
     function initFirebase(){
+      if(typeof firebase === 'undefined'){ return; }
       try{
-        firebase.initializeApp(firebaseConfig);
-        db=firebase.firestore();
-
-        const visits=db.collection('visits');
-        visits.add({
-          ts:firebase.firestore.FieldValue.serverTimestamp(),
-          agent:navigator.userAgent,
-          at:new Date().toISOString()
-        });
-        visits
-          .where('ts','>=',new Date(Date.now()-86400000))
-          .get()
-          .then(s=>$('#visitors24h').textContent=s.size);
-      }catch(e){
-        console.log('FB error',e);
+        if(firebase.apps && !firebase.apps.length){
+          firebase.initializeApp(firebaseConfig);
+        }else if(!firebase.apps){
+          firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+        trackVisitorLast24h();
+      }catch(err){
+        console.log('Firebase init error', err);
       }
     }
 
-    /* تسجيل الدخول */
-    function openLoginModal(){ $('#loginBg').style.display='flex'; }
-    function closeLoginModal(){ $('#loginBg').style.display='none'; }
+    function trackVisitorLast24h(){
+      if(!db) return;
+      const visitsRef = db.collection('visits');
+      const now = new Date();
 
-    async function loadUserFromCloud(){
+      visitsRef.add({
+        ts: firebase.firestore.FieldValue.serverTimestamp(),
+        userAgent: navigator.userAgent || '',
+        createdAt: now.toISOString()
+      }).catch(err=>console.log('visit add error',err));
+
+      const cutoff = new Date(now.getTime() - 24*60*60*1000);
+      visitsRef
+        .where('ts','>=',cutoff)
+        .get()
+        .then(snap=>{
+          $('#visitors24h').textContent = snap.size;
+        })
+        .catch(err=>{
+          console.log('visits query error',err);
+        });
+    }
+
+    function openLoginModal(){
+      $('#loginBg').style.display='flex';
+    }
+    function closeLoginModal(){
+      $('#loginBg').style.display='none';
+    }
+
+    async function loadUserDataFromFirestore(){
       if(!db || !userCode) return;
+      try{
+        const userRef = db.collection('users').doc(userCode);
+        const snap = await userRef.get();
+        if(snap.exists){
+          const data = snap.data() || {};
+          if(data.officialDailyHours){
+            store.hours = data.officialDailyHours;
+          }
+          if(data.lang){
+            store.lang = data.lang;
+          }
+        }
 
-      // بيانات الإعداد
-      const ref=db.collection('users').doc(userCode);
-      const snap=await ref.get();
-      if(snap.exists){
-        const d=snap.data();
-        if(d.officialDailyHours) store.hours=d.officialDailyHours;
-        if(d.lang) store.lang=d.lang;
+        const logsSnap = await userRef.collection('logs').get();
+        const logsObj={};
+        logsSnap.forEach(doc=>{
+          logsObj[doc.id]=doc.data();
+        });
+        if(Object.keys(logsObj).length){
+          store.logs = logsObj;
+        }
+      }catch(e){
+        console.log('load user error',e);
+        showAlert('Cloud sync error (Firestore Rules?)');
       }
 
-      // سجلات الأيام
-      const logsSnap=await ref.collection('logs').get();
-      const obj={};
-      logsSnap.forEach(doc=>obj[doc.id]=doc.data());
-      if(Object.keys(obj).length) store.logs=obj;
-
+      updateAccountCodeUI();
       applyLang();
       refreshVisibility();
       renderCalendar();
       updateSummary();
     }
 
-    function wireLogin(){
-      $('#loginClose').onclick=closeLoginModal;
+    function wireLoginModal(){
+      const btnCreate = $('#btnCreateUser');
+      const btnLogin = $('#btnLoginCode');
 
-      $('#btnCreateUser').onclick=async ()=>{
-        const code='KeFo'+Math.floor(100000+Math.random()*900000);
-        userCode=code;
-        localStorage.setItem('userCode',code);
+      btnCreate.onclick = async ()=>{
+        const t=i18n[store.lang]||i18n.en;
+        const code = 'KeFo' + Math.floor(100000 + Math.random()*900000);
+        userCode = code;
+        localStorage.setItem('userCode', code);
+        updateAccountCodeUI();
 
         if(db){
-          await db.collection('users').doc(code).set({
-            createdAt:new Date().toISOString(),
-            officialDailyHours:store.hours||8,
-            lang:store.lang
-          },{merge:true});
-          await syncLocalLogsToFirestore();
+          try{
+            const userRef = db.collection('users').doc(code);
+            await userRef.set({
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              createdAtISO: new Date().toISOString(),
+              officialDailyHours: store.hours || 8,
+              lang: store.lang
+            },{merge:true});
+
+            await syncLocalLogsToFirestore();
+
+          }catch(e){console.log('create user error',e);}
         }
 
-        alert(i18n[store.lang].loginCodeMsg+' '+code);
+        // عرض الكود في المودال الجميل بدل alert
+        $('#newCodeInput').value = code;
+        $('#newCodeBg').style.display = 'flex';
+
         closeLoginModal();
-        loadUserFromCloud();
+        loadUserDataFromFirestore();
       };
 
-      $('#btnLoginCode').onclick=async ()=>{
-        const code=$('#loginCodeInput').value.trim();
-        const t=i18n[store.lang];
-        if(!code){ alert(t.loginEmpty); return; }
+      btnLogin.onclick = async ()=>{
+        const t=i18n[store.lang]||i18n.en;
+        const code = $('#loginCodeInput').value.trim();
+        if(!code){
+          showAlert(t.loginEmpty || 'Please enter your code.');
+          return;
+        }
+        userCode = code;
+        localStorage.setItem('userCode', code);
 
         if(db){
-          const snap=await db.collection('users').doc(code).get();
-          if(!snap.exists){
-            alert(t.loginNotFound);
-            return;
+          try{
+            const snap = await db.collection('users').doc(code).get();
+            if(!snap.exists){
+              showAlert(t.loginNotFound || 'Code not found.');
+              localStorage.removeItem('userCode');
+              userCode=null;
+              updateAccountCodeUI();
+              return;
+            }
+          }catch(e){
+            console.log('login error',e);
+            showAlert('Cloud error on login');
           }
         }
 
-        userCode=code;
-        localStorage.setItem('userCode',code);
-
+        updateAccountCodeUI();
         closeLoginModal();
-        loadUserFromCloud();
+        loadUserDataFromFirestore();
       };
+
+      $('#loginClose').onclick = closeLoginModal;
+      $('#loginBg').addEventListener('click', e=>{
+        if(e.target.id === 'loginBg') closeLoginModal();
+      });
     }
 
-    /* زر تبديل الجهاز */
     function wireAccountButtons(){
-      $('#btnSwitchDevice').onclick=()=>{
-        const t=i18n[store.lang];
+      const btnSwitch = $('#btnSwitchDevice');
+      btnSwitch.onclick = ()=>{
+        const t=i18n[store.lang]||i18n.en;
         if(!userCode){
-          alert(t.loginEmpty);
+          showAlert(t.loginEmpty || 'Please enter your code or create one first.');
           openLoginModal();
           return;
         }
-        alert(t.switchDeviceHint+'\n\n'+userCode);
+        showAlert((t.switchDeviceHint || 'Use this code on your new device:') + '\n\n' + userCode);
       };
     }
 
-    /* ========= initialize page ========= */
-    document.addEventListener('DOMContentLoaded',()=>{
-      $('#yearFoot').textContent=new Date().getFullYear();
+    function initLoginFlow(){
+      wireLoginModal();
+      const saved = localStorage.getItem('userCode');
+      if(saved){
+        userCode = saved;
+        updateAccountCodeUI();
+        loadUserDataFromFirestore();
+      }else{
+        updateAccountCodeUI();
+        openLoginModal();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const yr=new Date().getFullYear();
+      $('#yearFoot').textContent=yr;
+      $('#year').textContent=yr;
 
       if(!localStorage.getItem('lang')) store.lang=autoLang();
+
+      // مودال التأكيد
+      $('#confirmNo').onclick=()=>{
+        if(confirmResolver) confirmResolver(false);
+        closeConfirm();
+      };
+      $('#confirmYes').onclick=()=>{
+        if(confirmResolver) confirmResolver(true);
+        closeConfirm();
+      };
+      $('#confirmClose').onclick=()=>{
+        if(confirmResolver) confirmResolver(false);
+        closeConfirm();
+      };
+      $('#confirmBg').addEventListener('click', e=>{
+        if(e.target.id==='confirmBg'){
+          if(confirmResolver) confirmResolver(false);
+          closeConfirm();
+        }
+      });
+
+      // مودال الكود الجديد
+      const closeNewCode = ()=>{ $('#newCodeBg').style.display='none'; };
+      $('#newCodeClose').onclick = closeNewCode;
+      $('#newCodeOk').onclick = closeNewCode;
+      $('#newCodeBg').addEventListener('click',e=>{
+        if(e.target.id==='newCodeBg') closeNewCode();
+      });
+
+      if(isStandalone()){
+        installDismissed = true;
+        appInstalled = true;
+        localStorage.setItem('installDismissed','1');
+        localStorage.setItem('appInstalled','1');
+        const banner = $('#installBanner');
+        if(banner) banner.hidden = true;
+      }
 
       wireLang();
       initSetup();
       wireCalendarNav();
+      wireModal();
       wireAbout();
-      wireLogin();
-      wireAccountButtons();
       wireProtection();
-
-      initFirebase();
       setupInstallBanner();
+      initFirebase();
+      initLoginFlow();
       applyLang();
       refreshVisibility();
-      renderCalendar();
-      updateSummary();
+      renderCalendar(); updateSummary();
+    });
 
-      // تسجيل الدخول التلقائي
-      const saved=localStorage.getItem('userCode');
-      if(saved){
-        userCode=saved;
-        loadUserFromCloud();
-      }else{
-        openLoginModal();
-      }
+    window.addEventListener('beforeinstallprompt', (e)=>{
+      if(!isMobile() || isIos() || isStandalone() || installDismissed || appInstalled) return;
+      e.preventDefault();
+      deferredPrompt = e;
+      const t = i18n[store.lang]||i18n.en;
+      const banner = $('#installBanner');
+      const btnInstall = $('#btnInstallApp');
+
+      $('#installText').textContent = t.installAndroidText;
+      btnInstall.textContent = t.installBtn;
+      banner.hidden = false;
+    });
+
+    window.addEventListener('appinstalled', ()=>{
+      appInstalled = true;
+      installDismissed = true;
+      localStorage.setItem('appInstalled','1');
+      localStorage.setItem('installDismissed','1');
+      const banner = $('#installBanner');
+      if(banner) banner.hidden = true;
     });
   </script>
 </body>
 </html>
-
-
