@@ -65,14 +65,6 @@
     }
     .chip b{color:#fff}
 
-    /* تمييز خانة الزائرين */
-    #visitorsChip{
-      background:linear-gradient(135deg,#22c55e,#eab308);
-      color:#022c22;
-      border-color:rgba(250,250,250,.35);
-    }
-    #visitorsChip b{color:#022c22;}
-
     .btn{
       appearance:none;border:0;background:var(--panel-2);color:var(--text);
       padding:8px 12px;border-radius:12px;cursor:pointer;
@@ -157,37 +149,11 @@
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .footer{display:flex;justify-content:space-between;gap:10px;padding:12px 16px}
 
-    /* شريط تنبيه تثبيت التطبيق */
-    .install-bar{
-      position:fixed;
-      bottom:10px;
-      left:50%;
-      transform:translateX(-50%);
-      max-width:640px;
-      width:calc(100% - 20px);
-      background:var(--panel-2);
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.08);
-      box-shadow:var(--shadow);
-      padding:10px 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      z-index:30;
-      font-size:.85rem;
-    }
-    .install-text{
-      flex:1;
-      color:var(--muted);
-      line-height:1.5;
-    }
-
     /* الطباعة: صفحة أفقية + جدول فقط */
     @media print{
       @page { size: A4 landscape; margin: 10mm; }
       body{background:#fff;color:#000;font-size:11px}
-      header, footer, #setup, #calendar, #installBanner, #loginBg, #confirmBg, #switchBg{display:none !important}
+      header, footer, #setup, #calendar, #loginBg, #confirmBg, #switchBg, #iosInstallBg{display:none !important}
       #printArea{display:block !important}
     }
 
@@ -205,7 +171,7 @@
       <div class="summary">
         <div class="chip"><span id="lblMonthSum">Hours</span> : <b id="sum-month">0:00</b></div>
         <div class="chip"><span id="lblOT">OT</span> : <b id="sum-ot">0:00</b></div>
-        <div class="chip" id="visitorsChip"><span id="lblVisitors">Visitors (24h)</span> : <b id="visitors24h">0</b></div>
+        <div class="chip" style="border-color:#22c55e"><span id="lblVisitors">Visitors (24h)</span> : <b id="visitors24h">0</b></div>
         <div class="chip" style="gap:6px">
           <span id="lblLang">Language</span> :
           <select id="langSwitcher" class="btn">
@@ -214,6 +180,10 @@
             <option value="ar">العربية</option>
           </select>
         </div>
+        <!-- أزرار التثبيت والمشاركة -->
+        <button class="btn" id="btnInstallAndroid">📱 Android</button>
+        <button class="btn" id="btnInstallIOS"> iOS</button>
+        <button class="btn" id="btnShare"><span id="lblShare">Share</span></button>
         <button class="btn" id="btnPrint">🖨️ <span id="lblPrint">PDF</span></button>
         <button class="btn" id="btnAbout"><span id="lblAbout">About us</span></button>
         <button class="btn" id="btnEditPolicy">⚙️ <span id="lblSettings">Settings</span></button>
@@ -222,15 +192,6 @@
       </div>
     </div>
   </header>
-
-  <!-- شريط اقتراح تثبيت التطبيق للجوال -->
-  <div id="installBanner" class="install-bar" hidden>
-    <div class="install-text" id="installText"></div>
-    <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-      <button class="btn btn-primary" id="btnInstallApp">Install</button>
-      <button class="btn" id="btnInstallClose">✖</button>
-    </div>
-  </div>
 
   <main>
     <!-- شاشة الإعداد -->
@@ -386,11 +347,24 @@
         <div class="q">
           <label id="switchNewLabel">إدخال حساب جديد</label>
           <input id="switchNewInput" type="text" placeholder="KeFo123456" />
+          <div class="hint" id="switchHint">أدخل كود KeFo من جهاز آخر لتحميل بياناتك.</div>
         </div>
       </div>
       <div class="footer" style="justify-content:flex-end;gap:10px">
-        <button class="btn" id="switchCancel">إلغاء</button>
-        <button class="btn btn-primary" id="switchApply">تبديل الحساب</button>
+        <button class="btn btn-primary" id="switchApply">تطبيق الكود الجديد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- مودال شرح تثبيت iOS -->
+  <div class="modal-backdrop" id="iosInstallBg" role="dialog" aria-modal="true">
+    <div class="modal">
+      <header class="wrap" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-weight:800" id="iosInstallTitle">تثبيت التطبيق على iOS</div>
+        <button class="btn" id="iosInstallClose">✖</button>
+      </header>
+      <div class="content">
+        <p id="iosInstallText" class="hint"></p>
       </div>
     </div>
   </div>
@@ -445,10 +419,6 @@
         thOT:'Überstunden',
         thTotal:'Gesamt',
 
-        installAndroidText:'Installiere die App, um alle Funktionen nutzen zu können.',
-        installIosText:'Um die App zu installieren: Öffne diese Seite in Safari, tippe auf das Teilen-Symbol und wähle „Zum Home-Bildschirm hinzufügen“.',
-        installBtn:'App installieren',
-
         rights:'Alle Rechte vorbehalten',
 
         loginTitle:'Anmeldung',
@@ -464,7 +434,6 @@
         myAccountLabel:'Meine persönliche Kontonummer (KeFo-Code)',
         myAccountHint:'Bewahre diese Nummer auf. Du kannst sie auf einem anderen Gerät eingeben, um deine Daten zu laden.',
         switchDevice:'Gerät wechseln',
-        switchDeviceHint:'Nutze diesen Code auf deinem neuen Gerät, um deine Daten zu laden.',
 
         resetConfirmTitle:'Zurücksetzen bestätigen',
         resetConfirmText:'Möchtest du wirklich alle Daten auf diesem Gerät löschen? Dies kann nicht rückgängig gemacht werden.',
@@ -472,9 +441,19 @@
         btnNo:'Abbrechen',
 
         switchTitle:'Gerät wechseln',
-        switchCurrentLabel:'Dein aktueller Kontocode',
-        switchNewLabel:'Neuen Kontocode eingeben',
-        switchApply:'Wechseln'
+        switchCurrentLabel:'Dein aktueller Account',
+        switchNewLabel:'Neuen Account-Code eingeben',
+        switchApply:'Neuen Code benutzen',
+        switchHint:'Gib hier deinen KeFo-Code von einem anderen Gerät ein, um die Daten zu laden.',
+
+        iosInstallTitle:'App auf iPhone / iPad installieren',
+        iosInstallText:'Öffne diese Seite in Safari, tippe auf das Teilen-Symbol unten und wähle „Zum Home-Bildschirm hinzufügen“. Danach erscheint die App wie eine normale Anwendung.',
+        androidInstallFallback:'Wenn die Install-Schaltfläche nicht erscheint: Öffne das Browser-Menü (⋮) und wähle „Zum Startbildschirm hinzufügen“, um die App zu installieren.',
+
+        lblShare:'Teilen',
+        shareText:'Verrechnest du dich ständig bei deinen Arbeitsstunden und Überstunden? Mit dem KeFo Arbeitszeitrechner kannst du deine tägliche Arbeitszeit erfassen und dein Monats- sowie Überstundensaldo in Sekunden sehen. Jetzt testen: https://kefo-tech.github.io/work-hours/',
+        shareSuccess:'Link wurde geteilt.',
+        shareFallback:'Der Text wurde in die Zwischenablage kopiert.'
       },
       en:{
         appTitle:'Work Hours Calculator',
@@ -519,10 +498,6 @@
         thOT:'Overtime',
         thTotal:'Total',
 
-        installAndroidText:'We recommend installing the app to use all available features.',
-        installIosText:'To install on iPhone: open this site in Safari, tap the Share button, then choose “Add to Home Screen”.',
-        installBtn:'Install app',
-
         rights:'All rights reserved',
 
         loginTitle:'Sign in',
@@ -538,7 +513,6 @@
         myAccountLabel:'My personal account number (KeFo code)',
         myAccountHint:'Keep this number. Enter it on any new device to load your data.',
         switchDevice:'Switch device',
-        switchDeviceHint:'Use this code on your new device to load your data.',
 
         resetConfirmTitle:'Confirm reset',
         resetConfirmText:'Do you really want to clear all data on this device? This cannot be undone.',
@@ -546,9 +520,19 @@
         btnNo:'Cancel',
 
         switchTitle:'Switch device',
-        switchCurrentLabel:'Your current account code',
-        switchNewLabel:'Enter another account code',
-        switchApply:'Switch'
+        switchCurrentLabel:'Your current account',
+        switchNewLabel:'Enter new account code',
+        switchApply:'Use this code',
+        switchHint:'Enter your KeFo code from another device to load your data.',
+
+        iosInstallTitle:'Install the app on iPhone / iPad',
+        iosInstallText:'Open this site in Safari, tap the Share button, then choose “Add to Home Screen”. The app will appear like a normal application.',
+        androidInstallFallback:'If the install button does not appear: open the browser menu (⋮) and choose “Add to Home screen” to install the app.',
+
+        lblShare:'Share',
+        shareText:'Do you keep miscalculating your work hours and overtime? With the KeFo Work Hours Calculator you can track your daily shifts and see your monthly total and overtime in seconds. Try it now: https://kefo-tech.github.io/work-hours/',
+        shareSuccess:'Link shared.',
+        shareFallback:'Text copied to clipboard.'
       },
       ar:{
         appTitle:'حاسِب ساعات العمل',
@@ -593,10 +577,6 @@
         thOT:'العمل الإضافي',
         thTotal:'الإجمالي',
 
-        installAndroidText:'ننصحك بتثبيت التطبيق لاستخدام جميع الميزات المتاحة.',
-        installIosText:'لتثبيت التطبيق على الآيفون: افتح الموقع في Safari، اضغط على زر المشاركة، ثم اختر "إضافة إلى الشاشة الرئيسية".',
-        installBtn:'تثبيت التطبيق',
-
         rights:'جميع الحقوق محفوظة',
 
         loginTitle:'تسجيل الدخول',
@@ -612,7 +592,6 @@
         myAccountLabel:'رقم حسابي الشخصي (كود KeFo)',
         myAccountHint:'احتفظ بهذا الرقم، يمكنك إدخاله على أي جهاز جديد لاسترجاع جميع بياناتك.',
         switchDevice:'تبديل الجهاز',
-        switchDeviceHint:'استخدم هذا الرقم على جهازك الجديد لتحميل جميع بياناتك.',
 
         resetConfirmTitle:'تأكيد التصفير',
         resetConfirmText:'هل تريد بالتأكيد مسح جميع البيانات من هذا الجهاز؟ هذا الإجراء لا يمكن التراجع عنه.',
@@ -622,7 +601,17 @@
         switchTitle:'تبديل الجهاز',
         switchCurrentLabel:'رقم حسابك الحالي',
         switchNewLabel:'إدخال حساب جديد',
-        switchApply:'تبديل الحساب'
+        switchApply:'تطبيق الكود الجديد',
+        switchHint:'أدخل كود KeFo من جهاز آخر لتحميل بياناتك.',
+
+        iosInstallTitle:'تثبيت التطبيق على الآيفون / الآيباد',
+        iosInstallText:'افتح الموقع في متصفح Safari، اضغط على زر المشاركة، ثم اختر "إضافة إلى الشاشة الرئيسية". بعدها سيظهر التطبيق مثل أي تطبيق آخر.',
+        androidInstallFallback:'إذا لم تظهر لك رسالة التثبيت: افتح قائمة المتصفح (⋮) واختر "إضافة إلى الشاشة الرئيسية" لتثبيت التطبيق.',
+
+        lblShare:'مشاركة',
+        shareText:'تعبت من حساب ساعات العمل والدوام الإضافي بالورقة والآلة الحاسبة؟ مع موقع حاسِب ساعات العمل من KeFo يمكنك تسجيل دوامك يوميًا ومعرفة مجموع الساعات والعمل الإضافي بسهولة. جرّبه الآن: https://kefo-tech.github.io/work-hours/',
+        shareSuccess:'تمت مشاركة الرابط.',
+        shareFallback:'تم نسخ النص إلى الحافظة.'
       }
     };
 
@@ -647,7 +636,6 @@
     let userCode=localStorage.getItem('userCode')||null;
     let deferredPrompt=null;
     let confirmResolver=null;
-    let installDismissed = localStorage.getItem('installDismissed') === '1';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAMVnS-oDUU905EtHx-J8NTRNwW5xr3yMg",
@@ -684,16 +672,6 @@
       const input = $('#myAccountCode');
       if(!input) return;
       input.value = userCode ? userCode : '—';
-    }
-
-    function updateInstallTexts(){
-      const t=i18n[store.lang]||i18n.en;
-      if(isIos()){
-        $('#installText').textContent = t.installIosText;
-      }else{
-        $('#installText').textContent = t.installAndroidText;
-      }
-      $('#btnInstallApp').textContent = t.installBtn;
     }
 
     function applyLang(){
@@ -756,8 +734,12 @@
       $('#switchCurrentLabel').textContent = t.switchCurrentLabel;
       $('#switchNewLabel').textContent = t.switchNewLabel;
       $('#switchApply').textContent = t.switchApply;
+      $('#switchHint').textContent = t.switchHint;
 
-      updateInstallTexts();
+      $('#iosInstallTitle').textContent = t.iosInstallTitle;
+      $('#iosInstallText').textContent  = t.iosInstallText;
+
+      $('#lblShare').textContent = t.lblShare;
 
       renderWeekdays();
       renderCalendarTitle();
@@ -1108,64 +1090,70 @@
     function isMobile(){
       return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
     }
-    // هل التطبيق يعمل كـ PWA (standalone)؟
     function isStandalone(){
-      const mqStandalone   = window.matchMedia('(display-mode: standalone)').matches;
-      const mqMinimalUi    = window.matchMedia('(display-mode: minimal-ui)').matches;
-      const mqFullscreen   = window.matchMedia('(display-mode: fullscreen)').matches;
-      const iosStandalone  = window.navigator.standalone === true;
-      const fromAndroidApp = document.referrer && document.referrer.startsWith('android-app://');
-      return mqStandalone || mqMinimalUi || mqFullscreen || iosStandalone || fromAndroidApp;
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     }
 
-    function setupInstallBanner(){
-      const banner     = $('#installBanner');
-      const btnInstall = $('#btnInstallApp');
-      const btnClose   = $('#btnInstallClose');
+    // أزرار التثبيت والمشاركة
+    function wireInstallAndShare(){
+      const btnAndroid = $('#btnInstallAndroid');
+      const btnIOS = $('#btnInstallIOS');
+      const btnShare = $('#btnShare');
 
-      // إذا التطبيق مفتوح كـ PWA → لا نستخدم الشريط نهائيًا
+      // إذا التطبيق مفتوح كتطبيق PWA نخفي أزرار التثبيت
       if(isStandalone()){
-        banner.hidden = true;
-        return;
+        btnAndroid.style.display = 'none';
+        btnIOS.style.display = 'none';
       }
 
-      // زر إغلاق الشريط
-      btnClose.onclick = () => {
-        banner.hidden = true;
-        installDismissed = true;
-        localStorage.setItem('installDismissed','1');
-      };
-
-      // زر "تثبيت التطبيق"
-      btnInstall.onclick = async () => {
+      btnAndroid.onclick = async ()=>{
+        const t=i18n[store.lang]||i18n.en;
         if(deferredPrompt){
-          // أندرويد: prompt رسمي
           deferredPrompt.prompt();
           try{
             await deferredPrompt.userChoice;
-          }catch(e){}
+          }catch(_){}
           deferredPrompt = null;
-          installDismissed = true;
-          localStorage.setItem('installDismissed','1');
-          banner.hidden = true;
-        }else if(isIos()){
-          // iOS: فقط الشرح
-          const t=i18n[store.lang]||i18n.en;
-          alert(t.installIosText);
         }else{
-          // متصفح لا يدعم beforeinstallprompt أو التطبيق مثبت يدويًا:
-          // نخفي الشريط نهائيًا على هذا الجهاز
-          installDismissed = true;
-          localStorage.setItem('installDismissed','1');
-          banner.hidden = true;
+          alert(t.androidInstallFallback);
         }
       };
 
-      // iOS فقط: نظهر الشريط كنصيحة في المتصفح فقط
-      if(isMobile() && isIos() && !isStandalone() && !installDismissed){
-        updateInstallTexts();
-        banner.hidden = false;
-      }
+      btnIOS.onclick = ()=>{
+        const t=i18n[store.lang]||i18n.en;
+        $('#iosInstallTitle').textContent = t.iosInstallTitle;
+        $('#iosInstallText').textContent  = t.iosInstallText;
+        $('#iosInstallBg').style.display='flex';
+      };
+
+      $('#iosInstallClose').onclick = ()=> $('#iosInstallBg').style.display='none';
+      $('#iosInstallBg').addEventListener('click', e=>{
+        if(e.target.id==='iosInstallBg') $('#iosInstallBg').style.display='none';
+      });
+
+      btnShare.onclick = async ()=>{
+        const t=i18n[store.lang]||i18n.en;
+        const shareText = t.shareText;
+        const shareData = {
+          title: t.appTitle,
+          text: shareText,
+          url: 'https://kefo-tech.github.io/work-hours/'
+        };
+        if(navigator.share){
+          try{
+            await navigator.share(shareData);
+          }catch(_){}
+        }else if(navigator.clipboard && navigator.clipboard.writeText){
+          try{
+            await navigator.clipboard.writeText(shareText);
+            alert(t.shareFallback);
+          }catch(_){
+            alert(shareText);
+          }
+        }else{
+          alert(shareText);
+        }
+      };
     }
 
     // Service Worker
@@ -1281,6 +1269,7 @@
           }catch(e){console.log('create user error',e);}
         }
 
+        alert((t.loginCodeMsg||'Your login code:') + ' ' + code);
         closeLoginModal();
         loadUserDataFromFirestore();
       };
@@ -1332,7 +1321,6 @@
     }
     function wireSwitchModal(){
       $('#switchClose').onclick = closeSwitchModal;
-      $('#switchCancel').onclick = closeSwitchModal;
       $('#switchBg').addEventListener('click', e=>{
         if(e.target.id==='switchBg') closeSwitchModal();
       });
@@ -1392,6 +1380,7 @@
 
       if(!localStorage.getItem('lang')) store.lang=autoLang();
 
+      // مودال التأكيد
       $('#confirmNo').onclick=()=>{
         if(confirmResolver) confirmResolver(false);
         closeConfirm();
@@ -1417,7 +1406,7 @@
       wireModal();
       wireAbout();
       wireProtection();
-      setupInstallBanner();
+      wireInstallAndShare();
       initFirebase();
       initLoginFlow();
       wireAccountButtons();
@@ -1427,22 +1416,13 @@
       renderCalendar(); updateSummary();
     });
 
+    // beforeinstallprompt لحفظ الحدث لاستخدامه مع زر أندرويد
     window.addEventListener('beforeinstallprompt', (e)=>{
-      // للمتصفح (أندرويد فقط)
-      if(!isMobile() || isIos() || isStandalone() || installDismissed) return;
+      if(!isMobile() || isIos() || isStandalone()) return;
       e.preventDefault();
       deferredPrompt = e;
-      const banner = $('#installBanner');
-      updateInstallTexts();
-      banner.hidden = false;
     });
 
-    window.addEventListener('appinstalled', ()=>{
-      installDismissed = true;
-      localStorage.setItem('installDismissed','1');
-      const banner = $('#installBanner');
-      if(banner) banner.hidden = true;
-    });
   </script>
 </body>
 </html>
