@@ -1139,18 +1139,25 @@
       // زر "تثبيت التطبيق"
       btnInstall.onclick = async () => {
         if(deferredPrompt){
-          // أندرويد: المستخدم في المتصفح، نعرض prompt الرسمي
+          // أندرويد: prompt رسمي
           deferredPrompt.prompt();
-          try {
-            const choice = await deferredPrompt.userChoice;
-            installDismissed = true;
-            localStorage.setItem('installDismissed','1');
-            banner.hidden = true;
-          } catch(e){}
+          try{
+            await deferredPrompt.userChoice;
+          }catch(e){}
           deferredPrompt = null;
+          installDismissed = true;
+          localStorage.setItem('installDismissed','1');
+          banner.hidden = true;
         }else if(isIos()){
-          const t = i18n[store.lang] || i18n.en;
+          // iOS: فقط الشرح
+          const t=i18n[store.lang]||i18n.en;
           alert(t.installIosText);
+        }else{
+          // متصفح لا يدعم beforeinstallprompt أو التطبيق مثبت يدويًا:
+          // نخفي الشريط نهائيًا على هذا الجهاز
+          installDismissed = true;
+          localStorage.setItem('installDismissed','1');
+          banner.hidden = true;
         }
       };
 
